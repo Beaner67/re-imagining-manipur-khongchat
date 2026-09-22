@@ -451,12 +451,15 @@
       d.stops.forEach(function (id) {
         n++; var p = KC.placeById(id), s = st[id];
         html += '<article class="stop" id="stop-' + id + '" data-id="' + id + '"><span class="n">' + n + "</span><div><h3>" + esc(p.name) + '</h3><p class="hours">' + esc(p.hours) + "</p>" +
-          '<div class="st" data-st="' + id + '">' + pill(s) + verified(s) + "</div><p>" + esc(p.blurb) + '</p><p class="tip">Tip: ' + esc(p.tip) + "</p></div></article>";
+          '<div class="st" data-st="' + id + '">' + pill(s) + verified(s) + "</div><p>" + esc(p.blurb) + '</p><p class="tip">Tip: ' + esc(p.tip) + "</p>" +
+          '<p class="dirs"><a class="btn ghost small" href="https://www.google.com/maps/dir/?api=1&destination=' + p.lat + "," + p.lon +
+          '" target="_blank" rel="noopener" aria-label="Directions to ' + esc(p.name) + '">Directions</a>' +
+          '<span class="fine">Opens your map app. Needs a connection unless you saved the area there.</span></p></div></article>';
       });
       html += spreadNote(d.stops) + "</section>";
     });
     html += '</div><aside class="side">' +
-      '<div class="panel"><h3>Route</h3><div id="mapBox"></div><p class="muted" style="font-size:13px;margin:8px 0 0">Schematic map, not to scale. Tap a pin.</p></div>' +
+      '<div class="panel"><h3>Route</h3><div id="mapBox"></div><p class="muted" style="font-size:13px;margin:8px 0 0">Places sit at their real coordinates. State boundary from Natural Earth, lake from OpenStreetMap. Tap a pin. For turn by turn, use Directions on a stop.</p></div>' +
       '<div class="panel"><h3>Inner Line Permit</h3><p class="muted" style="font-size:15px;margin:0 0 8px">Domestic visitors need an ILP. Tick off what you have.</p><div id="ilp"></div>' +
       '<a class="btn small" style="margin-top:12px" href="https://manipurilponline.mn.gov.in/" target="_blank" rel="noopener">Official ILP portal</a></div>' +
       '<div class="panel"><h3>Saved contacts</h3>' + D.contacts.map(function (c) { return '<div class="contact"><span>' + esc(c.label) + '</span><a href="tel:' + c.number + '">' + c.number + "</a></div>"; }).join("") + "</div>" +
@@ -494,14 +497,17 @@
   function drawMap(t) {
     var W = 400, H = 440, st = KC.getStatus(), pts = [], n = 0;
     var days = t.plan.filter(function (d) { return d.stops.length; }); // empty days get no pins or routes
-    var LAKE = [[24.63, 93.79], [24.61, 93.845], [24.55, 93.875], [24.47, 93.865], [24.435, 93.815], [24.465, 93.77], [24.55, 93.755]];
+    var LAKE = D.loktak;
     var ids = []; days.forEach(function (d) { d.stops.forEach(function (id) { ids.push(id); }); });
     var lats = ids.map(function (id) { return KC.placeById(id).lat; }), lons = ids.map(function (id) { return KC.placeById(id).lon; });
     if (ids.some(function (id) { return KC.placeById(id).region === "loktak"; })) LAKE.forEach(function (p) { lats.push(p[0]); lons.push(p[1]); });
     var la0 = Math.min.apply(null, lats), la1 = Math.max.apply(null, lats), lo0 = Math.min.apply(null, lons), lo1 = Math.max.apply(null, lons);
-    var span = Math.max(la1 - la0, (lo1 - lo0) * (H / W), 0.08) * 1.3, cla = (la0 + la1) / 2, clo = (lo0 + lo1) / 2;
-    var sLa = span, sLo = span * (W / H);
-    function P(lat, lon) { return [W / 2 + (lon - clo) / sLo * W, H / 2 - (lat - cla) / sLa * H]; }
+    var cla = (la0 + la1) / 2, clo = (lo0 + lo1) / 2, cos = Math.cos(cla * Math.PI / 180);
+    /* Equirectangular, with longitude squeezed by cos(latitude) so the outline keeps its real
+       shape. span is the height of the view in degrees of latitude. */
+    var span = Math.max(la1 - la0, (lo1 - lo0) * cos * (H / W), 0.08) * 1.3;
+    var kpx = H / span; // pixels per degree of latitude
+    function P(lat, lon) { return [W / 2 + (lon - clo) * cos * kpx, H / 2 - (lat - cla) * kpx]; }
     days.forEach(function (d) { d.stops.forEach(function (id) { var p = KC.placeById(id); n++; var xy = P(p.lat, p.lon); pts.push({ id: id, n: n, x: xy[0], y: xy[1], tx: xy[0], ty: xy[1] }); }); });
     // spread pins that sit on top of each other (Imphal places are close together)
     pts.forEach(function (p, i) {
@@ -522,17 +528,32 @@
       return out;
     }
     var lake = LAKE.map(function (q) { var xy = P(q[0], q[1]); return xy[0].toFixed(1) + "," + xy[1].toFixed(1); });
-    var lk = P(24.52, 93.81), im = P(24.81, 93.94);
+    var border = D.outline.map(function (q) { var xy = P(q[0], q[1]); return xy[0].toFixed(1) + "," + xy[1].toFixed(1); });
+    /* Scale bar: a round number of km that fits about a third of the width. */
+    function scaleBar() {
+      var pxPerKm = kpx / 111.32, want = W * 0.33 / pxPerKm, step = [1, 2, 5, 10, 20, 50, 100, 200].filter(function (k) { return k <= want; }).pop() || 1;
+      var len = step * pxPerKm, x = 16, y = H - 16;
+      return '<g class="scale" aria-hidden="true"><line x1="' + x + '" y1="' + y + '" x2="' + (x + len).toFixed(1) + '" y2="' + y + '"/>' +
+        '<line x1="' + x + '" y1="' + (y - 4) + '" x2="' + x + '" y2="' + (y + 4) + '"/>' +
+        '<line x1="' + (x + len).toFixed(1) + '" y1="' + (y - 4) + '" x2="' + (x + len).toFixed(1) + '" y2="' + (y + 4) + '"/>' +
+        '<text x="' + (x + len / 2).toFixed(1) + '" y="' + (y - 8) + '">' + step + " km</text></g>";
+    }
+    var lakeTop = Math.max.apply(null, LAKE.map(function (q) { return q[0]; }));
+    var lk = P(lakeTop + 0.015, 93.81), im = P(24.81, 93.94);
+    /* Labels go on last, with a paper halo, so a pin never sits on top of the words. */
+    function labels() {
+      return (lk[0] > 0 && lk[0] < W && lk[1] > 0 && lk[1] < H ? '<text class="lbl mid" x="' + lk[0].toFixed(0) + '" y="' + lk[1].toFixed(0) + '">Loktak Lake</text>' : "") +
+        (im[0] > 0 && im[0] < W && im[1] > 0 && im[1] < H ? '<text class="lbl" x="' + (im[0] + 34).toFixed(0) + '" y="' + (im[1] - 26).toFixed(0) + '">Imphal</text>' : "");
+    }
     var svg = '<svg class="map" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Schematic map of your route">' +
+      '<polygon class="border" points="' + border.join(" ") + '"/>' +
       '<polygon class="water" points="' + lake.join(" ") + '"/>' +
-      (lk[0] > 0 && lk[0] < W && lk[1] > 0 && lk[1] < H ? '<text class="lbl" x="' + (lk[0] + 30).toFixed(0) + '" y="' + (lk[1] + 4).toFixed(0) + '">Loktak Lake</text>' : "") +
-      (im[0] > 0 && im[0] < W && im[1] > 0 && im[1] < H ? '<text class="lbl" x="' + (im[0] + 34).toFixed(0) + '" y="' + (im[1] - 26).toFixed(0) + '">Imphal</text>' : "") +
-      routes() +
+      routes() + scaleBar() +
       pts.map(function (p) {
         var lead = (p.x !== p.tx || p.y !== p.ty) ? '<line x1="' + p.tx.toFixed(1) + '" y1="' + p.ty.toFixed(1) + '" x2="' + p.x.toFixed(1) + '" y2="' + p.y.toFixed(1) + '" stroke="#CFC4B1"/>' : "";
         return lead + '<g class="pin ' + pillCls(st[p.id].state) + '" data-id="' + p.id + '" tabindex="0" role="button" aria-label="Stop ' + p.n + ", " + esc(KC.placeById(p.id).name) + '">' +
           '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="12"/><text x="' + p.x.toFixed(1) + '" y="' + (p.y + 4).toFixed(1) + '">' + p.n + "</text></g>";
-      }).join("") + "</svg>";
+      }).join("") + labels() + "</svg>";
     $("#mapBox").innerHTML = svg;
     $$(".map .pin").forEach(function (g) {
       var go = function () { highlight(g.getAttribute("data-id"), true); };
@@ -769,6 +790,8 @@
       "<tr><td>Hero photo: Loktak Lake, by Leeder Bose (Unsplash)</td><td>Unsplash License</td></tr>" +
       "<tr><td>Fraunces and IBM Plex Sans fonts</td><td>SIL Open Font License 1.1</td></tr>" +
       "<tr><td>qrcode-generator by Kazuhiko Arase</td><td>MIT</td></tr>" +
+      "<tr><td>Manipur state boundary: Natural Earth 1:10m admin-1</td><td>Public domain</td></tr>" +
+      "<tr><td>Loktak Lake shoreline: &copy; OpenStreetMap contributors</td><td>Open Database License</td></tr>" +
       "<tr><td>AI assistance: Claude (Anthropic) for planning, research, design and code, reviewed by the team</td><td>Disclosure</td></tr></table>" +
       '<h2 id="privacy">Privacy</h2><p>Khongchat has no accounts for visitors. Your interests, trip, permit checklist and passport stamps are stored only in this browser. Nothing is sent to a server. There are no analytics and no tracking cookies. Clearing your browser data removes everything.</p>' +
       '<h2 id="terms">Terms of use</h2><p>This is a prototype for a hackathon. Information is provided for planning only and may be out of date. Always check timings, permits and advisories with Manipur Tourism before you travel. Listings come from public sources and may be out of date. Call to confirm before you travel. The craft passport reward and codes are demo. Do not rely on this prototype in an emergency: call 112.</p>' +

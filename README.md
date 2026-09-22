@@ -119,6 +119,8 @@ Original design. Colours come from the phanek (Manipuri wrap) border: maroon, go
 | 17 festivals (Meitei, Naga, Kuki and statewide) | Public information | Dates vary each year. Confirm with Manipur Tourism. |
 | Listings (stay, eat, guides, crafts) | **Real, from public sources, checked 22 Sep 2026** | 22 listings, plus 2 getting-there notes. Each shows its source link, the date checked and a trust label: Govt listed (Imphal West, Imphal East and Ukhrul district sites, Manipur Tourism, Incredible India), Business website (Classic Group of Hotels) or Travel guide, call to confirm (Wikivoyage, WanderOn, Responsible Tourism India). Prices are indicative, as published. Only publicly listed contacts are used. No booking sites were scraped. |
 | Craft passport | Crafts, villages and GI tags are **real**. The reward, QR codes and stamp counts are **demo** | No artisan group has signed up yet. Each craft links to a real listing for where to buy |
+| Manipur state boundary on the trip map | Natural Earth 1:10m admin-1, public domain | Simplified to 114 points so it works offline |
+| Loktak Lake shoreline | OpenStreetMap relation 9207024, ODbL | Simplified to 74 points. Credit: (c) OpenStreetMap contributors |
 | Place status (Open, Advisory, Closed) | **Demo data**, entered from the dashboard | In production this comes from the Tourism Department |
 
 Data lives in `js/data.js`. To add a place or a state, edit that one file.
@@ -170,7 +172,7 @@ fonts/                  Self-hosted fonts (OFL)
 
 - Live sync works between tabs in one browser. Cross-device sync needs the Supabase step.
 - Place status values are demo data. Listings are real but can go out of date; a live version would let the Tourism Department verify and update them from the staff dashboard.
-- The map is a schematic, not a navigation map.
+- The trip map draws real coordinates on a real state boundary, but it is not a navigation map: no roads, no routing. Each stop has a Directions link that hands off to the phone's own map app.
 - The staff dashboard uses a client-side demo PIN. Production needs real Tourism Department accounts.
 
 ## 10. Roadmap

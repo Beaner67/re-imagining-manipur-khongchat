@@ -269,8 +269,14 @@ section.block { padding: 72px 0; }
 .map .pin { cursor: pointer; }
 .map .pin { outline: none; }
 .map .pin:focus-visible circle, .map .pin.on circle { stroke-width: 4; }
-.map .lbl { font: 500 10px var(--body); fill: var(--ink-soft); }
+.map .lbl { font: 500 10px var(--body); fill: var(--ink-soft); paint-order: stroke; stroke: var(--paper); stroke-width: 3px; stroke-linejoin: round; }
+.map .lbl.mid { text-anchor: middle; }
 .map .water { fill: #C9D8D2; stroke: var(--loktak); stroke-width: 1; }
+.map .border { fill: #EDE7DA; stroke: var(--ink-soft); stroke-width: 1.5; stroke-linejoin: round; }
+.map .scale line { stroke: var(--ink); stroke-width: 1.5; }
+.map .scale text { font: 600 11px var(--body); fill: var(--ink); text-anchor: middle; }
+.stop .dirs { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
+.stop .dirs .fine { font-size: 13px; color: var(--ink-soft); }
 .map .contour { fill: none; stroke: var(--paper-3); stroke-width: 1.2; }
 .check { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); font-size: 15px; cursor: pointer; }
 .check input { width: 18px; height: 18px; margin-top: 3px; accent-color: var(--loktak); }
