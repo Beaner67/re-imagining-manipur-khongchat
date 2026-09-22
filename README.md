@@ -10,9 +10,9 @@ Built for the **Re-imagining Manipur Hackathon 2026**, organised by the Departme
 |---|---|
 | Problem statement | PS 1: Smart Manipur Tourism Discovery Platform |
 | Also covers (light) | PS 2 (planner), PS 5 (homestays), PS 6 (food), PS 7 (festival calendar) |
-| Team number | [Team number] |
-| Team name | [Team name] |
-| Team members | [Name, role] |
+| Team number | 2 |
+| Team name | Localhosts |
+| Team members | Yoihenba Mongjam, Ejualiu Joanna Ringdi |
 | Live prototype | [Link] |
 | Demo video | `02 Demo/brag.mp4` in the submission folder |
 
