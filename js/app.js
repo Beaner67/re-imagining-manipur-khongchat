@@ -538,22 +538,77 @@
         '<line x1="' + (x + len).toFixed(1) + '" y1="' + (y - 4) + '" x2="' + (x + len).toFixed(1) + '" y2="' + (y + 4) + '"/>' +
         '<text x="' + (x + len / 2).toFixed(1) + '" y="' + (y - 8) + '">' + step + " km</text></g>";
     }
+    /* Highways give the view something to hold on to when the trip is all inside one city. */
+    function roads() {
+      return D.roads.map(function (line) {
+        var seen = false, pts = line.map(function (q) {
+          var xy = P(q[0], q[1]);
+          if (xy[0] > -40 && xy[0] < W + 40 && xy[1] > -40 && xy[1] < H + 40) seen = true;
+          return xy[0].toFixed(1) + "," + xy[1].toFixed(1);
+        });
+        return seen ? '<polyline class="road" points="' + pts.join(" ") + '"/>' : "";
+      }).join("");
+    }
+    /* Town names, skipped where they would sit under a pin or another name. */
+    function towns() {
+      var placed = [], out = "";
+      D.towns.forEach(function (t) {
+        var xy = P(t[1], t[2]);
+        if (xy[0] < 24 || xy[0] > W - 24 || xy[1] < 16 || xy[1] > H - 26) return;
+        if (placed.some(function (q) { return Math.hypot(q[0] - xy[0], q[1] - xy[1]) < 46; })) return;
+        if (Math.hypot(lk[0] - xy[0], lk[1] - xy[1]) < 52) return; // the lake label sits here
+        // The name goes right of the dot, or left when a pin is in the way. Dropped only if both are blocked.
+        var wide = 8 + t[0].length * 5.2;
+        function blocked(x0, x1) {
+          return pts.some(function (p) { return Math.abs(p.y - xy[1]) < 15 && p.x > x0 - 13 && p.x < x1 + 13; }) ||
+            pts.some(function (p) { return Math.hypot(p.x - xy[0], p.y - xy[1]) < 15; }); // the dot itself under a pin
+        }
+        var side = "right";
+        if (blocked(xy[0], xy[0] + wide)) side = (xy[0] - wide > 10 && !blocked(xy[0] - wide, xy[0])) ? "left" : "above";
+        // above the dot is the last resort, and only if nothing sits there either
+        if (side === "above" && pts.some(function (p) { return Math.abs(p.x - xy[0]) < wide / 2 + 10 && p.y > xy[1] - 30 && p.y < xy[1] - 4; })) return;
+        placed.push(xy);
+        var tx = side === "left" ? xy[0] - 6 : side === "above" ? xy[0] : xy[0] + 6;
+        var ty = side === "above" ? xy[1] - 9 : xy[1] + 3.5;
+        var anchor = side === "left" ? ' text-anchor="end"' : side === "above" ? ' text-anchor="middle"' : "";
+        out += '<g class="town"><circle cx="' + xy[0].toFixed(1) + '" cy="' + xy[1].toFixed(1) + '" r="2.2"/>' +
+          "<text" + anchor + ' x="' + tx.toFixed(1) + '" y="' + ty.toFixed(1) + '">' + esc(t[0]) + "</text></g>";
+      });
+      return out;
+    }
+    /* Zoomed into the valley, a small locator shows where in Manipur you are looking. */
+    function inset() {
+      if (span > 0.7) return "";
+      var iw = 86, ih = 104, x0 = W - iw - 12, y0 = H - ih - 12;
+      var la = D.outline.map(function (q) { return q[0]; }), lo = D.outline.map(function (q) { return q[1]; });
+      var mla0 = Math.min.apply(null, la), mla1 = Math.max.apply(null, la), mlo0 = Math.min.apply(null, lo), mlo1 = Math.max.apply(null, lo);
+      var mcla = (mla0 + mla1) / 2, mclo = (mlo0 + mlo1) / 2, mcos = Math.cos(mcla * Math.PI / 180);
+      var mspan = Math.max(mla1 - mla0, (mlo1 - mlo0) * mcos * (ih / iw)) * 1.08, mk = (ih - 10) / mspan;
+      function Q(lat, lon) { return [x0 + iw / 2 + (lon - mclo) * mcos * mk, y0 + ih / 2 - (lat - mcla) * mk]; }
+      var shape = D.outline.map(function (q) { var xy = Q(q[0], q[1]); return xy[0].toFixed(1) + "," + xy[1].toFixed(1); });
+      var c = Q(cla, clo);
+      return '<g class="inset" aria-hidden="true"><rect x="' + x0 + '" y="' + y0 + '" width="' + iw + '" height="' + ih + '" rx="2"/>' +
+        '<polygon points="' + shape.join(" ") + '"/>' +
+        '<circle class="here" cx="' + c[0].toFixed(1) + '" cy="' + c[1].toFixed(1) + '" r="4"/></g>';
+    }
     var lakeTop = Math.max.apply(null, LAKE.map(function (q) { return q[0]; }));
-    var lk = P(lakeTop + 0.015, 93.81), im = P(24.81, 93.94);
-    /* Labels go on last, with a paper halo, so a pin never sits on top of the words. */
+    var lk = P(lakeTop + 0.015, 93.81);
+    /* The lake label goes on last, with a paper halo, so a pin never sits on the words.
+       Town names, Imphal included, come from D.towns. */
     function labels() {
-      return (lk[0] > 0 && lk[0] < W && lk[1] > 0 && lk[1] < H ? '<text class="lbl mid" x="' + lk[0].toFixed(0) + '" y="' + lk[1].toFixed(0) + '">Loktak Lake</text>' : "") +
-        (im[0] > 0 && im[0] < W && im[1] > 0 && im[1] < H ? '<text class="lbl" x="' + (im[0] + 34).toFixed(0) + '" y="' + (im[1] - 26).toFixed(0) + '">Imphal</text>' : "");
+      return (lk[0] > 20 && lk[0] < W - 20 && lk[1] > 10 && lk[1] < H - 10
+        ? '<text class="lbl mid" x="' + lk[0].toFixed(0) + '" y="' + lk[1].toFixed(0) + '">Loktak Lake</text>' : "");
     }
     var svg = '<svg class="map" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Schematic map of your route">' +
       '<polygon class="border" points="' + border.join(" ") + '"/>' +
+      roads() +
       '<polygon class="water" points="' + lake.join(" ") + '"/>' +
       routes() + scaleBar() +
       pts.map(function (p) {
         var lead = (p.x !== p.tx || p.y !== p.ty) ? '<line x1="' + p.tx.toFixed(1) + '" y1="' + p.ty.toFixed(1) + '" x2="' + p.x.toFixed(1) + '" y2="' + p.y.toFixed(1) + '" stroke="#CFC4B1"/>' : "";
         return lead + '<g class="pin ' + pillCls(st[p.id].state) + '" data-id="' + p.id + '" tabindex="0" role="button" aria-label="Stop ' + p.n + ", " + esc(KC.placeById(p.id).name) + '">' +
           '<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="12"/><text x="' + p.x.toFixed(1) + '" y="' + (p.y + 4).toFixed(1) + '">' + p.n + "</text></g>";
-      }).join("") + labels() + "</svg>";
+      }).join("") + towns() + labels() + inset() + "</svg>";
     $("#mapBox").innerHTML = svg;
     $$(".map .pin").forEach(function (g) {
       var go = function () { highlight(g.getAttribute("data-id"), true); };

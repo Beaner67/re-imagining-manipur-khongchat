@@ -121,6 +121,7 @@ Original design. Colours come from the phanek (Manipuri wrap) border: maroon, go
 | Craft passport | Crafts, villages and GI tags are **real**. The reward, QR codes and stamp counts are **demo** | No artisan group has signed up yet. Each craft links to a real listing for where to buy |
 | Manipur state boundary on the trip map | Natural Earth 1:10m admin-1, public domain | Simplified to 114 points so it works offline |
 | Loktak Lake shoreline | OpenStreetMap relation 9207024, ODbL | Simplified to 74 points. Credit: (c) OpenStreetMap contributors |
+| Highways and town names on the map | OpenStreetMap, ODbL | Trunk and primary roads clipped to Manipur, 265 lines, and 30 towns. Credit: (c) OpenStreetMap contributors |
 | Place status (Open, Advisory, Closed) | **Demo data**, entered from the dashboard | In production this comes from the Tourism Department |
 
 Data lives in `js/data.js`. To add a place or a state, edit that one file.

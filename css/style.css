@@ -273,6 +273,12 @@ section.block { padding: 72px 0; }
 .map .lbl.mid { text-anchor: middle; }
 .map .water { fill: #C9D8D2; stroke: var(--loktak); stroke-width: 1; }
 .map .border { fill: #EDE7DA; stroke: var(--ink-soft); stroke-width: 1.5; stroke-linejoin: round; }
+.map .road { fill: none; stroke: #C2B49B; stroke-width: 1.2; stroke-linejoin: round; stroke-linecap: round; }
+.map .town circle { fill: var(--ink-soft); }
+.map .town text { font: 500 9px var(--body); fill: var(--ink-soft); paint-order: stroke; stroke: var(--paper); stroke-width: 2.5px; stroke-linejoin: round; }
+.map .inset rect { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5; }
+.map .inset polygon { fill: #EDE7DA; stroke: var(--ink-soft); stroke-width: 1; }
+.map .inset .here { fill: var(--phanek); stroke: var(--paper); stroke-width: 1.5; }
 .map .scale line { stroke: var(--ink); stroke-width: 1.5; }
 .map .scale text { font: 600 11px var(--body); fill: var(--ink); text-anchor: middle; }
 .stop .dirs { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
