@@ -23,8 +23,6 @@ window.KC_DATA = {
     tamenglong: "Tamenglong",
     churachandpur: "Churachandpur"
   },
-  /* Hill districts: a full day of road travel each, so the planner adds them from day 3. */
-  hillRegions: ["ukhrul", "senapati", "tamenglong", "churachandpur"],
 
   places: [
     { id: "kangla", name: "Kangla Fort", region: "imphal", lat: 24.808, lon: 93.942, tags: ["heritage", "culture"], hours: "9 AM to 4 PM",
@@ -57,7 +55,7 @@ window.KC_DATA = {
       blurb: "At Iroisemba, at the foot of the western hills. The easiest place to see the sangai deer.", tip: "Good if you cannot make dawn at Keibul Lamjao." },
     { id: "bishnupur", name: "Vishnu Temple, Bishnupur", region: "loktak", lat: 24.630, lon: 93.770, tags: ["heritage"], hours: "Daytime",
       blurb: "A small brick temple from the 15th century, with a Chinese-style roof.", tip: "It sits on the road to Moirang. Stop on the way." },
-    { id: "shirui", name: "Shirui Hills", region: "ukhrul", lat: 25.100, lon: 94.450, tags: ["nature", "adventure"], hours: "Daytime trek",
+    { id: "shirui", name: "Shirui Hills, Ukhrul", region: "ukhrul", lat: 25.100, lon: 94.450, tags: ["nature", "adventure"], hours: "Daytime trek",
       blurb: "Home of the Shirui lily, which blooms nowhere else.", tip: "Lily season is around May." },
     { id: "khangkhui", name: "Khangkhui Cave", region: "ukhrul", lat: 25.050, lon: 94.380, tags: ["nature", "adventure", "heritage"], hours: "Daytime",
       blurb: "Limestone cave near Ukhrul town, used as a shelter by villagers in the Second World War.", tip: "Carry a torch and wear shoes with grip." },

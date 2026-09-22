@@ -4,7 +4,7 @@
   var main = document.getElementById("main");
   var head = document.getElementById("head");
   var PIN = "2026"; // Prototype only: client-side gate. Production uses real staff accounts.
-  var ui = { interests: ["heritage", "nature", "food"], days: 2, month: new Date().getMonth(), tab: "stay", hl: null, lq: "", lregion: "", lshow: 5 };
+  var ui = { interests: [], pq: "", addDay: 1, confirm: null, month: new Date().getMonth(), tab: "stay", hl: null, lq: "", lregion: "", lshow: 5 };
   var PAGE = 5; // listings shown per tab before "Show more"
   var cleanup = [];
 
@@ -47,7 +47,7 @@
     var r = route().name;
     if (m.type === "status") {
       if (r === "trip") refreshTripStatus();
-      if (r === "home") refreshStrip();
+      if (r === "home") { refreshStrip(); refreshPills(); }
       if (r === "admin") renderAdminTable(true);
     }
     if (m.type === "trip" && r === "admin") renderBars();
@@ -93,20 +93,30 @@
       '<section class="strip" aria-label="Today in Manipur"><div class="wrap" id="strip"></div></section>' +
 
       '<section class="block" id="plan"><div class="wrap">' +
-        '<div class="block-head reveal"><div><p class="kicker">Personal planner</p><h2>Plan Manipur in a minute.</h2></div>' +
-        '<p class="muted">Pick what you love and how many days you have. The plan groups stops by area, so you spend your time there, not on the road.</p></div>' +
-        '<div class="planner reveal">' +
-          "<div>" +
-            '<p class="label" id="il">I love</p>' +
-            '<div class="chips" role="group" aria-labelledby="il">' +
-              D.interests.map(function (i) { return '<button class="chip" data-i="' + i.id + '" aria-pressed="' + (ui.interests.indexOf(i.id) > -1) + '">' + esc(i.label) + "</button>"; }).join("") +
-            "</div>" +
+        '<div class="block-head reveal"><div><p class="kicker">Trip builder</p><h2>Build your Manipur trip.</h2></div>' +
+        '<p class="muted">Choose how many days you have and the places you want to see. We only suggest places close to the ones you pick, so you spend your time there, not on the road.</p></div>' +
+        '<div class="builder reveal">' +
+          '<div class="builder-top"><div>' +
             '<p class="label" id="dl">Days in Manipur</p>' +
-            '<div class="days" role="group" aria-labelledby="dl">' + [1, 2, 3, 4, 5, 6, 7].map(function (d) { return '<button data-d="' + d + '" aria-pressed="' + (ui.days === d) + '" aria-label="' + d + (d === 1 ? " day" : " days") + '">' + d + "</button>"; }).join("") + "</div>" +
-            '<p class="muted" style="margin-top:28px;font-size:15px">Hill districts (Ukhrul, Senapati, Tamenglong, Churachandpur) join from day 3, one district per day.</p>' +
+            '<div class="stepper" role="group" aria-labelledby="dl">' +
+              '<button type="button" id="dMinus" aria-label="One day fewer">&minus;</button>' +
+              '<input id="dIn" type="number" inputmode="numeric" min="1" max="14" aria-label="Number of days" />' +
+              '<button type="button" id="dPlus" aria-label="One day more">+</button>' +
+            "</div>" +
+            '<p class="dnote" id="dNote" aria-live="polite"></p><div id="dConfirm" aria-live="polite"></div>' +
           "</div>" +
-          '<div class="preview" aria-live="polite"><h3 id="pvTitle"></h3><div id="pv"></div>' +
-            '<button class="btn" id="build" style="margin-top:20px;width:100%">Open my trip</button></div>' +
+          '<button class="btn" id="build">Open my trip</button></div>' +
+          '<div class="bdays" id="bdays"></div>' +
+        "</div>" +
+        '<div class="allp" id="allp">' +
+          "<h3>All places</h3>" +
+          '<p class="label" id="il">Filter by interest</p>' +
+          '<div class="chips" role="group" aria-labelledby="il">' +
+            D.interests.map(function (i) { return '<button class="chip" data-i="' + i.id + '" aria-pressed="' + (ui.interests.indexOf(i.id) > -1) + '">' + esc(i.label) + "</button>"; }).join("") +
+          "</div>" +
+          '<input type="search" class="pq" id="pq" placeholder="Search places" aria-label="Search places" />' +
+          '<p class="lcount muted" id="pcount" aria-live="polite"></p>' +
+          '<ul class="plist" id="plist"></ul>' +
         "</div>" +
       "</div></section>" +
 
@@ -141,27 +151,15 @@
         var id = b.getAttribute("data-i"), k = ui.interests.indexOf(id);
         if (k > -1) ui.interests.splice(k, 1); else ui.interests.push(id);
         b.setAttribute("aria-pressed", k === -1);
-        renderPreview(); renderFests();
+        renderPlaces(); renderFests();
       };
     });
-    $$("[data-d]").forEach(function (b) {
-      b.onclick = function () {
-        ui.days = +b.getAttribute("data-d");
-        $$("[data-d]").forEach(function (x) { x.setAttribute("aria-pressed", x === b); });
-        renderPreview();
-      };
-    });
-    $("#build").onclick = function () {
-      var t = KC.plan(ui.interests, ui.days);
-      if (!t.plan.length) { toast("Pick at least one interest."); return; }
-      KC.saveTrip(t);
-      location.hash = "#/trip";
-    };
+    initBuilder();
     $("#lq").oninput = function () { ui.lq = this.value; ui.lshow = PAGE; renderListing(); };
     $("#lregion").onchange = function () { ui.lregion = this.value; ui.lshow = PAGE; renderListing(); };
     $("#lmore").onclick = function () { ui.lshow += PAGE; renderListing(); };
     $("#lq").value = ui.lq; $("#lregion").value = ui.lregion;
-    refreshStrip(); renderPreview(); renderMonths(); renderFests(); renderTabs();
+    refreshStrip(); renderBuilder(); renderMonths(); renderFests(); renderTabs();
   }
 
   function refreshStrip() {
@@ -177,15 +175,169 @@
     if (lt) lt.textContent = n.open + " places open today";
   }
 
-  function renderPreview() {
-    var t = KC.plan(ui.interests, ui.days);
-    $("#pvTitle").textContent = t.plan.length ? "Your " + t.plan.length + "-day plan" : "Pick an interest";
-    $("#pv").innerHTML = t.plan.length ? t.plan.map(function (d, i) {
-      return '<div class="pday" style="animation-delay:' + (i * 60) + 'ms"><b>Day ' + d.day + '</b><div><div class="area">' + esc(regionName(d.region)) + '</div><div class="stops">' +
-        d.stops.map(function (id) { return esc(KC.placeById(id).name); }).join(", ") + "</div></div></div>";
-    }).join("") : '<p class="empty">Choose at least one thing you love and your plan appears here.</p>';
-    if (t.plan.length && t.plan.length < ui.days) $("#pv").innerHTML += '<p class="empty">Add more interests to fill day ' + (t.plan.length + 1) + ".</p>";
-    $("#build").disabled = !t.plan.length;
+  /* ---------- trip builder: the traveller picks days and places ---------- */
+  var T = null; // the trip being edited, saved on every change
+  function newTrip(days) {
+    var plan = []; for (var i = 1; i <= days; i++) plan.push({ day: i, stops: [] });
+    return { days: days, plan: plan, created: new Date().toISOString() };
+  }
+  function allStops(t) { return (t || T).plan.reduce(function (a, d) { return a.concat(d.stops); }, []); }
+  function dayOf(id) { for (var i = 0; i < T.plan.length; i++) if (T.plan[i].stops.indexOf(id) > -1) return i; return -1; }
+  function spreadNote(stops) {
+    var f = KC.spread(stops);
+    return f ? '<p class="spread">' + esc(KC.placeById(f.b).name) + " is " + KC.fmtKm(f.km) + " from " + esc(KC.placeById(f.a).name) + ". Consider splitting this into two days.</p>" : "";
+  }
+  /* Up to 3 places not yet in the trip, within 15 km of the closest stop of this day. Distance only. */
+  function nearby(stops) {
+    var used = allStops();
+    return D.places.filter(function (p) { return used.indexOf(p.id) === -1; }).map(function (p) {
+      var best = null;
+      stops.forEach(function (id) { var km = KC.distanceKm(KC.placeById(id), p); if (!best || km < best.km) best = { km: km, from: id }; });
+      return { p: p, km: best.km, from: best.from };
+    }).filter(function (x) { return x.km <= 15; }).sort(function (a, b) { return a.km - b.km; }).slice(0, 3);
+  }
+  function mutate(fn) {
+    fn(T);
+    T.days = T.plan.length;
+    T.plan.forEach(function (d, i) { d.day = i + 1; });
+    KC.saveTrip(T);
+    renderBuilder();
+  }
+  function resize(n) { mutate(function (t) { while (t.plan.length < n) t.plan.push({ day: 0, stops: [] }); t.plan.length = n; }); }
+  function setDays(v) {
+    var n = parseInt(v, 10), note = "";
+    if (isNaN(n)) n = T.days;
+    if (n < 1 || n > 14) { n = Math.max(1, Math.min(14, n)); note = "Trips can be 1 to 14 days."; }
+    $("#dNote").textContent = note;
+    ui.confirm = null;
+    var cut = T.plan.slice(n).filter(function (d) { return d.stops.length; });
+    if (n < T.days && cut.length) { ui.confirm = { kind: "days", to: n }; renderBuilder(); return; }
+    if (n !== T.days) resize(n); else renderBuilder();
+  }
+  function confirmBox(text, yes) {
+    return '<div class="confirm" role="alert"><span>' + text + '</span><button class="btn small" data-act="' + yes + '">Remove</button><button class="btn ghost small" data-act="no">Keep</button></div>';
+  }
+  function listJoin(a) { return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; }
+
+  function initBuilder() {
+    T = KC.getTrip() || newTrip(2);
+    ui.confirm = null;
+    $("#dMinus").onclick = function () { setDays(T.days - 1); };
+    $("#dPlus").onclick = function () { setDays(T.days + 1); };
+    $("#dIn").onchange = function () { setDays(this.value); };
+    $("#dIn").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); setDays(this.value); } };
+    $("#build").onclick = function () { location.hash = "#/trip"; };
+    $("#pq").value = ui.pq;
+    $("#pq").oninput = function () { ui.pq = this.value; renderPlaces(); };
+    $("#plan").addEventListener("click", onBuilderClick);
+    $("#plan").addEventListener("change", function (e) {
+      var el = e.target;
+      if (el.classList.contains("moveto") && el.value !== "") {
+        var id = el.getAttribute("data-id"), to = +el.value;
+        mutate(function (t) { var from = dayOf(id); t.plan[from].stops.splice(t.plan[from].stops.indexOf(id), 1); t.plan[to].stops.push(id); });
+        toast(esc(KC.placeById(id).name) + " moved to Day " + (to + 1) + ".");
+      }
+      if (el.classList.contains("addday")) ui.addDay = +el.value + 1;
+    });
+  }
+  function onBuilderClick(e) {
+    var b = e.target.closest("[data-act]"); if (!b) return;
+    var act = b.getAttribute("data-act"), id = b.getAttribute("data-id"), day = +b.getAttribute("data-day");
+    if (act === "up" || act === "down") mutate(function (t) {
+      var s = t.plan[day].stops, i = s.indexOf(id), j = act === "up" ? i - 1 : i + 1;
+      if (j >= 0 && j < s.length) { s[i] = s[j]; s[j] = id; }
+    });
+    else if (act === "remove") mutate(function (t) { var d = dayOf(id); if (d > -1) t.plan[d].stops.splice(t.plan[d].stops.indexOf(id), 1); });
+    else if (act === "add") {
+      var sel = b.parentNode.querySelector(".addday"), to = sel ? +sel.value : day;
+      if (dayOf(id) === -1) mutate(function (t) { t.plan[to].stops.push(id); });
+    }
+    else if (act === "clear") { ui.confirm = { kind: "clear", day: day }; renderBuilder(); }
+    else if (act === "clear-yes") { var cd = ui.confirm.day; ui.confirm = null; mutate(function (t) { t.plan[cd].stops = []; }); }
+    else if (act === "days-yes") { var n = ui.confirm.to; ui.confirm = null; resize(n); }
+    else if (act === "no") { ui.confirm = null; renderBuilder(); }
+  }
+
+  function renderBuilder() {
+    if (!$("#bdays")) return;
+    // Keep keyboard focus on the same control after a re-render.
+    var a = document.activeElement, key = a && a.getAttribute && a.getAttribute("data-act") && a.getAttribute("data-id")
+      ? '[data-act="' + a.getAttribute("data-act") + '"][data-id="' + a.getAttribute("data-id") + '"]' : null;
+    $("#dIn").value = T.days;
+    $("#dMinus").disabled = T.days <= 1; $("#dPlus").disabled = T.days >= 14;
+    var c = ui.confirm;
+    if (c && c.kind === "days") {
+      var cut = T.plan.slice(c.to).filter(function (d) { return d.stops.length; });
+      var n = cut.reduce(function (k, d) { return k + d.stops.length; }, 0), pl = n + " place" + (n > 1 ? "s" : "");
+      $("#dConfirm").innerHTML = confirmBox(cut.length === 1 ? "Day " + cut[0].day + " has " + pl + ". Remove it?" :
+        "Days " + listJoin(cut.map(function (d) { return d.day; })) + " have " + pl + ". Remove them?", "days-yes");
+    } else $("#dConfirm").innerHTML = "";
+    $("#build").disabled = !allStops().length;
+    renderDays(); renderPlaces();
+    if (key) { var el = $(key); if (el && !el.disabled) el.focus(); }
+  }
+
+  function renderDays() {
+    var st = KC.getStatus();
+    $("#bdays").innerHTML = T.plan.map(function (d, di) {
+      var area = KC.dayArea(d.stops), last = d.stops.length - 1, h = "";
+      h += '<section class="bday" aria-labelledby="bd' + di + '"><div class="bday-head"><div><h3 id="bd' + di + '">Day ' + d.day + "</h3>" +
+        (area ? '<p class="area">' + esc(area) + "</p>" : "") + "</div>" +
+        (d.stops.length ? '<button class="btn ghost small" data-act="clear" data-id="d' + di + '" data-day="' + di + '" aria-label="Clear Day ' + d.day + '">Clear day</button>' : "") + "</div>";
+      if (ui.confirm && ui.confirm.kind === "clear" && ui.confirm.day === di)
+        h += confirmBox("Remove all " + d.stops.length + " place" + (d.stops.length > 1 ? "s" : "") + " from Day " + d.day + "?", "clear-yes");
+      if (!d.stops.length) return h + '<p class="empty">No places yet. Add one from the list below.</p></section>';
+      h += '<ol class="bstops">' + d.stops.map(function (id, i) {
+        var p = KC.placeById(id), nm = esc(p.name);
+        return '<li class="bstop"><span class="nm">' + nm + '</span><span class="meta">' + esc(regionName(p.region)) + '</span><span class="pw" data-pill="' + id + '">' + pill(st[id]) + "</span>" +
+          '<div class="ctl">' +
+            '<button data-act="up" data-id="' + id + '" data-day="' + di + '" aria-label="Move ' + nm + ' up"' + (i === 0 ? " disabled" : "") + ">Up</button>" +
+            '<button data-act="down" data-id="' + id + '" data-day="' + di + '" aria-label="Move ' + nm + ' down"' + (i === last ? " disabled" : "") + ">Down</button>" +
+            '<button data-act="remove" data-id="' + id + '" aria-label="Remove ' + nm + " from Day " + d.day + '">Remove</button>' +
+            (T.plan.length > 1 ? '<select class="moveto" data-id="' + id + '" aria-label="Move ' + nm + ' to another day"><option value="">Move to</option>' +
+              T.plan.map(function (x, xi) { return xi === di ? "" : '<option value="' + xi + '">Day ' + x.day + "</option>"; }).join("") + "</select>" : "") +
+          "</div></li>";
+      }).join("") + "</ol>";
+      h += spreadNote(d.stops);
+      var near = nearby(d.stops);
+      h += '<div class="near"><p class="label">Nearby</p>' + (near.length
+        ? "<ul>" + near.map(function (x) {
+            return "<li><span>" + esc(x.p.name) + ", " + KC.fmtKm(x.km) + " from " + esc(KC.placeById(x.from).name) + "</span>" +
+              '<button class="btn ghost small" data-act="add" data-id="' + x.p.id + '" data-day="' + di + '" aria-label="Add ' + esc(x.p.name) + " to Day " + d.day + '">Add</button></li>';
+          }).join("") + '</ul><p class="fine">Distances are straight-line and approximate.</p>'
+        : '<p class="fine">Nothing else within 15 km. Browse all places below.</p>') + "</div>";
+      return h + "</section>";
+    }).join("");
+  }
+
+  function renderPlaces() {
+    if (!$("#plist")) return;
+    var q = ui.pq.trim().toLowerCase(), st = KC.getStatus();
+    if (ui.addDay > T.days) ui.addDay = 1;
+    var list = D.places.filter(function (p) {
+      return (!ui.interests.length || p.tags.some(function (t) { return ui.interests.indexOf(t) > -1; })) &&
+        (!q || (p.name + " " + regionName(p.region) + " " + p.blurb).toLowerCase().indexOf(q) > -1);
+    });
+    $("#pcount").textContent = "Showing " + list.length + " of " + D.places.length + " places";
+    $("#plist").innerHTML = list.length ? list.map(function (p) {
+      var d = dayOf(p.id), nm = esc(p.name), act;
+      if (d > -1) act = '<span class="in">In Day ' + (d + 1) + '</span><button class="btn ghost small" data-act="remove" data-id="' + p.id + '" aria-label="Remove ' + nm + " from Day " + (d + 1) + '">Remove</button>';
+      else act = '<select class="addday" data-id="' + p.id + '" aria-label="Day to add ' + nm + ' to">' +
+        T.plan.map(function (x, xi) { return '<option value="' + xi + '"' + (xi === ui.addDay - 1 ? " selected" : "") + ">Add to Day " + x.day + "</option>"; }).join("") + "</select>" +
+        '<button class="btn small" data-act="add" data-id="' + p.id + '" aria-label="Add ' + nm + ' to the chosen day">Add</button>';
+      return '<li class="prow"><div><span class="nm">' + nm + '</span> <span class="meta">' + esc(regionName(p.region)) + '</span><p class="blurb">' + esc(p.blurb) + "</p>" +
+        '<span class="pw" data-pill="' + p.id + '">' + pill(st[p.id]) + '</span></div><div class="pact">' + act + "</div></li>";
+    }).join("") : '<li class="none muted">No places match. Clear the search or change the interests.</li>';
+  }
+
+  function refreshPills() {
+    var st = KC.getStatus();
+    $$("[data-pill]").forEach(function (el) {
+      var s = st[el.getAttribute("data-pill")], v = s.state + s.note, before = el.getAttribute("data-v");
+      if (before === v) return;
+      el.innerHTML = pill(s); el.setAttribute("data-v", v);
+      if (before !== null) el.firstChild.classList.add("flip");
+    });
   }
 
   function eventsFor(m) {
@@ -232,7 +384,7 @@
      Areas on the visitor's saved trip come first. */
   function renderListing() {
     var q = ui.lq.trim().toLowerCase(), t = KC.getTrip();
-    var onTrip = t ? t.plan.map(function (d) { return d.region; }) : [];
+    var onTrip = t ? allStops(t).map(function (id) { return KC.placeById(id).region; }) : [];
     var all = D.listings.filter(function (l) {
       return l.type === ui.tab && (!ui.lregion || l.region === ui.lregion) &&
         (!q || (l.name + " " + l.note + " " + regionName(l.region)).toLowerCase().indexOf(q) > -1);
@@ -254,26 +406,26 @@
      ========================================================= */
   function trip() {
     var t = KC.getTrip();
-    if (!t) {
+    if (!t || !allStops(t).length) {
       main.innerHTML = '<div class="wrap" style="padding:80px 24px"><p class="kicker">My trip</p><h1 style="font-size:clamp(40px,6vw,64px);margin-bottom:16px">No trip yet.</h1>' +
-        '<p class="muted" style="max-width:520px">Pick what you love and how many days you have. It takes a minute.</p><a class="btn" href="#/" style="margin-top:20px" data-plan>Plan my trip</a></div>';
+        '<p class="muted" style="max-width:520px">Choose how many days you have and the places you want to see. It takes a minute.</p><a class="btn" href="#/" style="margin-top:20px" data-plan>Build my trip</a></div>';
       $("[data-plan]").onclick = function (e) { e.preventDefault(); location.hash = "#/"; setTimeout(function () { scrollToId("plan"); }, 60); };
       return;
     }
-    var st = KC.getStatus(), n = 0;
-    var labels = t.interests.map(function (i) { return D.interests.filter(function (x) { return x.id === i; })[0].label.toLowerCase(); });
-    var html = '<div class="wrap"><div class="trip-head"><div><p class="kicker">My trip</p><h1>' + t.plan.length + " day" + (t.plan.length > 1 ? "s" : "") + " in Manipur</h1>" +
-      '<p class="muted" style="margin:10px 0 0">For ' + esc(labels.join(", ")) + ". Status updates live from Manipur Tourism.</p></div>" +
-      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="saveOff">Save for offline</button><a class="btn ghost" href="#/" id="edit">Change plan</a></div></div>' +
+    var st = KC.getStatus(), n = 0, places = allStops(t).length;
+    var html = '<div class="wrap"><div class="trip-head"><div><p class="kicker">My trip</p><h1>' + t.days + " day" + (t.days > 1 ? "s" : "") + " in Manipur</h1>" +
+      '<p class="muted" style="margin:10px 0 0">' + places + " place" + (places > 1 ? "s" : "") + " over " + t.days + " day" + (t.days > 1 ? "s" : "") + ". Status updates live from Manipur Tourism.</p></div>" +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="saveOff">Save for offline</button><a class="btn ghost" href="#/" id="edit">Edit trip</a></div></div>' +
       '<div class="trip-grid"><div>';
     t.plan.forEach(function (d) {
-      html += '<section class="day"><div class="day-title"><b>Day ' + d.day + "</b><span>" + esc(regionName(d.region)) + "</span></div>";
+      if (!d.stops.length) return;
+      html += '<section class="day"><div class="day-title"><b>Day ' + d.day + "</b><span>" + esc(KC.dayArea(d.stops)) + "</span></div>";
       d.stops.forEach(function (id) {
         n++; var p = KC.placeById(id), s = st[id];
         html += '<article class="stop" id="stop-' + id + '" data-id="' + id + '"><span class="n">' + n + "</span><div><h3>" + esc(p.name) + '</h3><p class="hours">' + esc(p.hours) + "</p>" +
           '<div class="st" data-st="' + id + '">' + pill(s) + verified(s) + "</div><p>" + esc(p.blurb) + '</p><p class="tip">Tip: ' + esc(p.tip) + "</p></div></article>";
       });
-      html += "</section>";
+      html += spreadNote(d.stops) + "</section>";
     });
     html += '</div><aside class="side">' +
       '<div class="panel"><h3>Route</h3><div id="mapBox"></div><p class="muted" style="font-size:13px;margin:8px 0 0">Schematic map, not to scale. Tap a pin.</p></div>' +
@@ -283,7 +435,7 @@
       "</aside></div></div>";
     main.innerHTML = html;
     drawMap(t); drawIlp();
-    $("#edit").onclick = function (e) { e.preventDefault(); ui.interests = t.interests.slice(); ui.days = t.days; location.hash = "#/"; setTimeout(function () { scrollToId("plan"); }, 60); };
+    $("#edit").onclick = function (e) { e.preventDefault(); location.hash = "#/"; setTimeout(function () { scrollToId("plan"); }, 60); };
     $("#saveOff").onclick = function () {
       if (navigator.serviceWorker && navigator.serviceWorker.controller) toast("<b>Trip saved.</b> It will open with no signal.");
       else toast("<b>Trip saved on this device.</b> Full offline mode works on the live site.");
@@ -313,15 +465,16 @@
   /* Schematic map: places projected from lat/lon. No tiles, so it works offline. */
   function drawMap(t) {
     var W = 400, H = 440, st = KC.getStatus(), pts = [], n = 0;
+    var days = t.plan.filter(function (d) { return d.stops.length; }); // empty days get no pins or routes
     var LAKE = [[24.63, 93.79], [24.61, 93.845], [24.55, 93.875], [24.47, 93.865], [24.435, 93.815], [24.465, 93.77], [24.55, 93.755]];
-    var ids = []; t.plan.forEach(function (d) { d.stops.forEach(function (id) { ids.push(id); }); });
+    var ids = []; days.forEach(function (d) { d.stops.forEach(function (id) { ids.push(id); }); });
     var lats = ids.map(function (id) { return KC.placeById(id).lat; }), lons = ids.map(function (id) { return KC.placeById(id).lon; });
-    if (t.plan.some(function (d) { return d.region === "loktak"; })) LAKE.forEach(function (p) { lats.push(p[0]); lons.push(p[1]); });
+    if (ids.some(function (id) { return KC.placeById(id).region === "loktak"; })) LAKE.forEach(function (p) { lats.push(p[0]); lons.push(p[1]); });
     var la0 = Math.min.apply(null, lats), la1 = Math.max.apply(null, lats), lo0 = Math.min.apply(null, lons), lo1 = Math.max.apply(null, lons);
     var span = Math.max(la1 - la0, (lo1 - lo0) * (H / W), 0.08) * 1.3, cla = (la0 + la1) / 2, clo = (lo0 + lo1) / 2;
     var sLa = span, sLo = span * (W / H);
     function P(lat, lon) { return [W / 2 + (lon - clo) / sLo * W, H / 2 - (lat - cla) / sLa * H]; }
-    t.plan.forEach(function (d) { d.stops.forEach(function (id) { var p = KC.placeById(id); n++; var xy = P(p.lat, p.lon); pts.push({ id: id, n: n, x: xy[0], y: xy[1], tx: xy[0], ty: xy[1] }); }); });
+    days.forEach(function (d) { d.stops.forEach(function (id) { var p = KC.placeById(id); n++; var xy = P(p.lat, p.lon); pts.push({ id: id, n: n, x: xy[0], y: xy[1], tx: xy[0], ty: xy[1] }); }); });
     // spread pins that sit on top of each other (Imphal places are close together)
     pts.forEach(function (p, i) {
       var k = 0;
@@ -332,7 +485,7 @@
     });
     function routes() { // solid line within a day, faint dashed hop between days
       var out = "", k = 0;
-      t.plan.forEach(function (d, di) {
+      days.forEach(function (d, di) {
         var seg = pts.slice(k, k + d.stops.length);
         if (di > 0) { var a = pts[k - 1], b = seg[0]; out += '<line class="hop" x1="' + a.x.toFixed(1) + '" y1="' + a.y.toFixed(1) + '" x2="' + b.x.toFixed(1) + '" y2="' + b.y.toFixed(1) + '"/>'; }
         if (seg.length > 1) out += '<polyline class="route draw" style="animation-delay:' + (0.2 + di * 0.5) + 's" points="' + seg.map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" ") + '"/>';

@@ -49,12 +49,26 @@
     },
     resetStatus: function () { write(K.status, defaultStatus()); if (chan) chan.postMessage({ type: "status" }); emit({ type: "status" }); },
 
-    getTrip: function () { return read(K.trip, null); },
+    /* Trip shape: { days, plan: [{ day, stops: [placeId] }], created }.
+       Older saves also had interests and plan[].region: keep the stops, drop the rest. */
+    getTrip: function () {
+      var t = read(K.trip, null);
+      if (!t || !t.plan) return null;
+      var days = Math.max(1, Math.min(14, Math.max(t.days || 0, t.plan.length)));
+      var plan = [];
+      for (var i = 0; i < days; i++) {
+        var d = t.plan[i];
+        plan.push({ day: i + 1, stops: d && d.stops ? d.stops.filter(function (id) { return KC.placeById(id); }) : [] });
+      }
+      return { days: days, plan: plan, created: t.created || new Date().toISOString() };
+    },
     saveTrip: function (t) {
       write(K.trip, t);
       // Demand log for the dashboard chart (in production: a saved_trips table).
-      var log = read("kc_triplog_v1", []);
-      log.push({ stops: t.plan.reduce(function (a, d) { return a.concat(d.stops); }, []), at: t.created });
+      // One entry per trip, replaced on each edit, so saving on every change does not inflate counts.
+      var stops = t.plan.reduce(function (a, d) { return a.concat(d.stops); }, []);
+      var log = read("kc_triplog_v1", []).filter(function (e) { return e.at !== t.created; });
+      if (stops.length) log.push({ stops: stops, at: t.created });
       write("kc_triplog_v1", log.slice(-200));
       if (chan) chan.postMessage({ type: "trip" });
     },
@@ -78,52 +92,25 @@
 
     onChange: function (fn) { listeners.push(fn); },
 
-    /* Rule-based personalised planner.
-       Scores each place by interest matches, gives each day one region
-       (so travel time stays short), picks the best 3-4 stops per region.
-       Longer trips add hill districts, then second days in regions with
-       stops left over. */
-    plan: function (interests, days) {
-      var hills = D.hillRegions;
-      function isHill(r) { return hills.indexOf(r) !== -1; }
-      var scored = D.places.map(function (p) {
-        var score = p.tags.filter(function (t) { return interests.indexOf(t) !== -1; }).length;
-        return { p: p, score: score };
-      }).filter(function (x) { return x.score > 0; });
-
-      var byRegion = {};
-      scored.forEach(function (x) { (byRegion[x.p.region] = byRegion[x.p.region] || []).push(x); });
-      var regions = Object.keys(byRegion).map(function (r) {
-        var list = byRegion[r].sort(function (a, b) { return b.score - a.score; });
-        var total = list.slice(0, 4).reduce(function (n, x) { return n + x.score; }, 0);
-        return { region: r, list: list, total: total };
-      });
-      // Hills need a full day of travel: only include them from day 3.
-      if (days < 3) regions = regions.filter(function (r) { return !isHill(r.region); });
-      // Imphal first (most visitors land there), then the strongest matches.
-      regions.sort(function (a, b) { return (b.region === "imphal") - (a.region === "imphal") || b.total - a.total; });
-      var picked = regions.slice(0, days);
-      // Valley days first, hill days at the end of the trip.
-      picked.sort(function (a, b) { return isHill(a.region) - isHill(b.region); });
-
-      var out = [], CAP = 4;
-      picked.forEach(function (r) { r.used = CAP; out.push({ region: r.region, stops: r.list.slice(0, CAP) }); });
-      // Days still free: a second day where a region has stops left over.
-      var more = true;
-      while (out.length < days && more) {
-        more = false;
-        for (var i = 0; i < picked.length && out.length < days; i++) {
-          var r = picked[i];
-          if (r.list.length > r.used) {
-            var at = out.map(function (d) { return d.region; }).lastIndexOf(r.region) + 1;
-            out.splice(at, 0, { region: r.region, stops: r.list.slice(r.used, r.used + CAP) });
-            r.used += CAP; more = true;
-          }
-        }
-      }
-      out = out.map(function (d, i) { return { day: i + 1, region: d.region, stops: d.stops.map(function (x) { return x.p.id; }) }; });
-      return { interests: interests, days: days, plan: out, created: new Date().toISOString() };
+    /* Area of a day: the most common region among its stops (ties go to the first added). */
+    dayArea: function (stops) {
+      if (!stops.length) return "";
+      var n = {}, best = null;
+      stops.forEach(function (id) { var r = KC.placeById(id).region; n[r] = (n[r] || 0) + 1; if (!best || n[r] > n[best]) best = r; });
+      return (n[best] === stops.length ? "" : "Mostly ") + D.regions[best];
     },
+
+    /* Widest pair of stops in a day, if more than 40 km apart: { a, b, km } where b was added later. */
+    spread: function (stops) {
+      var far = null;
+      for (var i = 0; i < stops.length; i++) for (var j = i + 1; j < stops.length; j++) {
+        var km = KC.distanceKm(KC.placeById(stops[i]), KC.placeById(stops[j]));
+        if (km > 40 && (!far || km > far.km)) far = { a: stops[i], b: stops[j], km: km };
+      }
+      return far;
+    },
+
+    fmtKm: function (km) { return km < 1 ? "under 1 km" : Math.round(km) + " km"; },
 
     relTime: function (iso) {
       var d = new Date(iso);
@@ -147,6 +134,15 @@
     if (e.key === K.stamps) emit({ type: "stamp" });
     if (e.key === "kc_triplog_v1") emit({ type: "trip" });
   });
+
+  // Great-circle distance in km between two places (haversine).
+  KC.distanceKm = function (a, b) {
+    var R = 6371, toRad = function (d) { return d * Math.PI / 180; };
+    var dLat = toRad(b.lat - a.lat), dLon = toRad(b.lon - a.lon);
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  };
 
   window.KC = KC;
 })();

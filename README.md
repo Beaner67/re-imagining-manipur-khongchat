@@ -28,7 +28,7 @@ Built for the **Re-imagining Manipur Hackathon 2026**, organised by the Departme
 
 | Feature | What it does |
 |---|---|
-| Personal trip planner | Pick interests (heritage, nature, culture, food, adventure, crafts, sports) and number of days. Get a day-by-day plan. |
+| Trip builder | Pick 1 to 14 days, then add places to each day. Nearby suggestions come only from distance, so each day stays close together. |
 | Verified live status | Each place shows Open, Advisory or Closed. Tourism staff set it from a dashboard; tourist pages update at once. |
 | Works with no signal | Pages, trip, contacts and the ILP checklist are cached on the phone and open in airplane mode. |
 | Craft passport | Scan a QR code at an artisan stall or homestay to collect a stamp. Three stamps unlock a guided village walk. |
@@ -57,12 +57,11 @@ Tourism dashboard  --(set status)-->  Status store  --(live update)-->  Tourist 
 - **Prototype (this repo):** status is stored in the browser (`localStorage`). Open pages sync instantly through `BroadcastChannel`. This makes the demo work on one laptop with no server and no internet.
 - **Production plan:** replace the browser store with a Supabase table and realtime subscriptions, so an update on the dashboard reaches every phone.
 
-### How the planner works (rule-based)
+### How the planner works
 
-1. Score each place by how many of the tourist's interests it matches.
-2. Group places by area (Imphal city; Loktak and Moirang; Thoubal, Kakching and Andro; hill districts).
-3. Give each day one area to cut travel time. Imphal comes first because most visitors arrive there.
-4. Take the best 3 to 4 stops per day. Hill districts are added only from day 3, as one full-day trip.
+1. The traveller picks how many days they have (1 to 14) and adds the places they want to each day. Nothing is added automatically. Interest chips and search only filter the list of places.
+2. Under each day, Nearby suggests up to 3 places within 15 km of that day's places, nearest first. Distance is straight-line (haversine) between coordinates. Nothing else (interests, popularity) affects suggestions.
+3. When one day has two places more than 40 km apart, a note suggests splitting it into two days.
 
 No AI model runs inside the app. AI-generated suggestions are on the roadmap.
 
@@ -144,7 +143,7 @@ The service worker (offline mode) needs `http://localhost` or `https://`. It doe
 
 **Demo flow**
 
-1. Open the site. Pick interests and days. Tap "Open my trip".
+1. Open the site. Set the days, add places to each day. Tap "Open my trip".
 2. Open `#/admin` in a second tab (PIN 2026). Change a place's status. The trip page updates instantly.
 3. Open `#/stamp/andro` to collect a stamp (this is where the stall QR code points).
 4. Turn off the network in developer tools, or switch the phone to airplane mode, and reload the trip page.
@@ -157,7 +156,7 @@ One page app with hash routes: `#/` Discover, `#/trip`, `#/passport`, `#/stamp/<
 index.html              App shell (header, footer)
 css/style.css           Design system and all styles
 js/data.js              Places, events, listings, stamps, contacts, ILP checklist, sources
-js/store.js             Status, trip and stamp storage, live sync, rule-based planner
+js/store.js             Status, trip and stamp storage, live sync, distance helpers
 js/app.js               Router and views
 js/qrcode.js            QR generator (third-party, MIT)
 sw.js                   Service worker for offline mode
