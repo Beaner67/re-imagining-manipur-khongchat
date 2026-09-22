@@ -13,7 +13,7 @@ Built for the **Re-imagining Manipur Hackathon 2026**, organised by the Departme
 | Team number | 2 |
 | Team name | Localhosts |
 | Team members | Yoihenba Mongjam, Ejualiu Joanna Ringdi |
-| Live prototype | [Link] |
+| Live prototype | https://re-imagining-manipur-khongchat.vercel.app/ |
 | Demo video | `02 Demo/brag.mp4` in the submission folder |
 
 ---
