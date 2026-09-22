@@ -719,16 +719,29 @@
     var n = KC.stampCounts();
     $$("[data-issued]").forEach(function (el) { el.textContent = n[el.getAttribute("data-issued")] || 0; });
   }
-  /* Clean print view of one code: filled into a print-only block, so it works offline and without a popup. */
-  function printCode(id) {
+  /* Clean print view of one code. The swap happens inside the print lifecycle, so the preview
+     shows one sheet, the page comes back afterwards, and a plain Ctrl+P still prints the page.
+     Timers, window focus and the print media query all fire while Chrome's preview is still
+     open, which is what put the whole dashboard back before. */
+  var printCraft = null;
+  function fillPrintOne(id) {
     var c = craftById(id), box = document.getElementById("printOne");
     if (!box) { box = document.createElement("div"); box.id = "printOne"; box.className = "print-one"; document.body.appendChild(box); }
     box.innerHTML = "<h2>" + esc(c.name) + '</h2><div class="code">' + qrSvg(id, 8) + "</div><p>Khongchat craft stamp. Government of Manipur, Department of Tourism.</p>";
-    document.body.classList.add("printing-one");
-    var done = function () { document.body.classList.remove("printing-one"); window.removeEventListener("afterprint", done); };
-    window.addEventListener("afterprint", done);
+  }
+  window.addEventListener("beforeprint", function () {
+    if (printCraft) { fillPrintOne(printCraft); document.body.classList.add("printing-one"); }
+    else document.body.classList.remove("printing-one"); // a print the person started themselves
+  });
+  window.addEventListener("afterprint", function () {
+    printCraft = null;
+    document.body.classList.remove("printing-one");
+  });
+  function printCode(id) {
+    printCraft = id;
+    fillPrintOne(id);
+    document.body.classList.add("printing-one"); // for browsers that do not fire beforeprint
     window.print();
-    setTimeout(done, 1000);
   }
 
   function renderBars() {
