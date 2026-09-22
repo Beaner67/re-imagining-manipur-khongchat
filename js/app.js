@@ -4,7 +4,7 @@
   var main = document.getElementById("main");
   var head = document.getElementById("head");
   var PIN = "2026"; // Prototype only: client-side gate. Production uses real staff accounts.
-  var ui = { interests: [], pq: "", addDay: 1, confirm: null, month: new Date().getMonth(), tab: "stay", hl: null, lq: "", lregion: "", lshow: 5 };
+  var ui = { interests: [], pq: "", day: 0, confirm: null, month: new Date().getMonth(), tab: "stay", hl: null, lq: "", lregion: "", lshow: 5 };
   var PAGE = 5; // listings shown per tab before "Show more"
   var cleanup = [];
 
@@ -96,27 +96,30 @@
         '<div class="block-head reveal"><div><p class="kicker">Trip builder</p><h2>Build your Manipur trip.</h2></div>' +
         '<p class="muted">Choose how many days you have and the places you want to see. We only suggest places close to the ones you pick, so you spend your time there, not on the road.</p></div>' +
         '<div class="builder reveal">' +
-          '<div class="builder-top"><div>' +
-            '<p class="label" id="dl">Days in Manipur</p>' +
-            '<div class="stepper" role="group" aria-labelledby="dl">' +
-              '<button type="button" id="dMinus" aria-label="One day fewer">&minus;</button>' +
-              '<input id="dIn" type="number" inputmode="numeric" min="1" max="14" aria-label="Number of days" />' +
-              '<button type="button" id="dPlus" aria-label="One day more">+</button>' +
+          '<aside class="trip-panel" aria-label="Your trip">' +
+            '<div class="tp-days"><p class="label" id="dl">Days in Manipur</p><div class="tp-row">' +
+              '<div class="stepper" role="group" aria-labelledby="dl">' +
+                '<button type="button" id="dMinus" aria-label="One day fewer">&minus;</button>' +
+                '<input id="dIn" type="number" inputmode="numeric" min="1" max="14" aria-label="Number of days" />' +
+                '<button type="button" id="dPlus" aria-label="One day more">+</button>' +
+              "</div>" +
+              '<div class="presets" role="group" aria-label="Quick pick">' + [3, 5, 7, 14].map(function (n) { return '<button type="button" data-preset="' + n + '" aria-label="' + n + ' days">' + n + "</button>"; }).join("") + "</div>" +
             "</div>" +
-            '<p class="dnote" id="dNote" aria-live="polite"></p><div id="dConfirm" aria-live="polite"></div>' +
+            '<p class="dnote" id="dNote" aria-live="polite"></p><div id="dConfirm" aria-live="polite"></div></div>' +
+            '<div class="dtabs" id="dtabs" role="group" aria-label="Choose a day"></div>' +
+            '<div class="dpanel" id="dpanel" aria-live="polite"></div>' +
+            '<div class="tp-foot"><p class="tp-sum" id="tpSum"></p><button class="btn" id="build">Open my trip</button></div>' +
+          "</aside>" +
+          '<div class="places-col">' +
+            "<h3>All places</h3>" +
+            '<p class="label" id="il">Filter by interest</p>' +
+            '<div class="chips" role="group" aria-labelledby="il">' +
+              D.interests.map(function (i) { return '<button class="chip" data-i="' + i.id + '" aria-pressed="' + (ui.interests.indexOf(i.id) > -1) + '">' + esc(i.label) + "</button>"; }).join("") +
+            "</div>" +
+            '<input type="search" class="pq" id="pq" placeholder="Search places" aria-label="Search places" />' +
+            '<p class="lcount muted" id="pcount" aria-live="polite"></p>' +
+            '<ul class="plist" id="plist"></ul>' +
           "</div>" +
-          '<button class="btn" id="build">Open my trip</button></div>' +
-          '<div class="bdays" id="bdays"></div>' +
-        "</div>" +
-        '<div class="allp" id="allp">' +
-          "<h3>All places</h3>" +
-          '<p class="label" id="il">Filter by interest</p>' +
-          '<div class="chips" role="group" aria-labelledby="il">' +
-            D.interests.map(function (i) { return '<button class="chip" data-i="' + i.id + '" aria-pressed="' + (ui.interests.indexOf(i.id) > -1) + '">' + esc(i.label) + "</button>"; }).join("") +
-          "</div>" +
-          '<input type="search" class="pq" id="pq" placeholder="Search places" aria-label="Search places" />' +
-          '<p class="lcount muted" id="pcount" aria-live="polite"></p>' +
-          '<ul class="plist" id="plist"></ul>' +
         "</div>" +
       "</div></section>" +
 
@@ -129,7 +132,7 @@
 
       '<section class="block" id="listings"><div class="wrap">' +
         '<div class="block-head reveal"><div><p class="kicker">Stay, eat, go</p><h2>Local, and one tap away.</h2></div>' +
-        '<p class="muted">Homestays, kitchens, guides and makers. Money goes straight to them. Contact buttons switch on once partners are verified.</p></div>' +
+        '<p class="muted">Homestays, kitchens, guides and makers. Real places with public contacts and indicative prices. Money goes straight to them. Every listing shows its source.</p></div>' +
         '<div class="tabs reveal" role="tablist" id="tabs"></div>' +
         '<div class="lfilter"><input type="search" id="lq" placeholder="Search by name or what they offer" aria-label="Search listings" />' +
           '<select id="lregion" aria-label="Area"><option value="">All areas</option>' +
@@ -226,6 +229,7 @@
     $("#dPlus").onclick = function () { setDays(T.days + 1); };
     $("#dIn").onchange = function () { setDays(this.value); };
     $("#dIn").onkeydown = function (e) { if (e.key === "Enter") { e.preventDefault(); setDays(this.value); } };
+    $$("[data-preset]").forEach(function (b) { b.onclick = function () { setDays(+b.getAttribute("data-preset")); }; });
     $("#build").onclick = function () { location.hash = "#/trip"; };
     $("#pq").value = ui.pq;
     $("#pq").oninput = function () { ui.pq = this.value; renderPlaces(); };
@@ -237,20 +241,21 @@
         mutate(function (t) { var from = dayOf(id); t.plan[from].stops.splice(t.plan[from].stops.indexOf(id), 1); t.plan[to].stops.push(id); });
         toast(esc(KC.placeById(id).name) + " moved to Day " + (to + 1) + ".");
       }
-      if (el.classList.contains("addday")) ui.addDay = +el.value + 1;
     });
   }
   function onBuilderClick(e) {
     var b = e.target.closest("[data-act]"); if (!b) return;
-    var act = b.getAttribute("data-act"), id = b.getAttribute("data-id"), day = +b.getAttribute("data-day");
-    if (act === "up" || act === "down") mutate(function (t) {
+    var act = b.getAttribute("data-act"), id = b.getAttribute("data-id"), day = ui.day;
+    if (act === "tab") { ui.day = +b.getAttribute("data-day"); ui.confirm = ui.confirm && ui.confirm.kind === "days" ? ui.confirm : null; renderBuilder(); }
+    else if (act === "up" || act === "down") mutate(function (t) {
       var s = t.plan[day].stops, i = s.indexOf(id), j = act === "up" ? i - 1 : i + 1;
       if (j >= 0 && j < s.length) { s[i] = s[j]; s[j] = id; }
     });
     else if (act === "remove") mutate(function (t) { var d = dayOf(id); if (d > -1) t.plan[d].stops.splice(t.plan[d].stops.indexOf(id), 1); });
     else if (act === "add") {
-      var sel = b.parentNode.querySelector(".addday"), to = sel ? +sel.value : day;
-      if (dayOf(id) === -1) mutate(function (t) { t.plan[to].stops.push(id); });
+      if (dayOf(id) > -1) return;
+      mutate(function (t) { t.plan[day].stops.push(id); });
+      if (b.closest(".plist")) toast("Added <b>" + esc(KC.placeById(id).name) + "</b> to Day " + (day + 1) + ".");
     }
     else if (act === "clear") { ui.confirm = { kind: "clear", day: day }; renderBuilder(); }
     else if (act === "clear-yes") { var cd = ui.confirm.day; ui.confirm = null; mutate(function (t) { t.plan[cd].stops = []; }); }
@@ -259,12 +264,14 @@
   }
 
   function renderBuilder() {
-    if (!$("#bdays")) return;
+    if (!$("#dpanel")) return;
     // Keep keyboard focus on the same control after a re-render.
     var a = document.activeElement, key = a && a.getAttribute && a.getAttribute("data-act") && a.getAttribute("data-id")
       ? '[data-act="' + a.getAttribute("data-act") + '"][data-id="' + a.getAttribute("data-id") + '"]' : null;
+    if (ui.day >= T.days) ui.day = T.days - 1;
     $("#dIn").value = T.days;
     $("#dMinus").disabled = T.days <= 1; $("#dPlus").disabled = T.days >= 14;
+    $$("[data-preset]").forEach(function (b) { b.setAttribute("aria-pressed", +b.getAttribute("data-preset") === T.days); });
     var c = ui.confirm;
     if (c && c.kind === "days") {
       var cut = T.plan.slice(c.to).filter(function (d) { return d.stops.length; });
@@ -272,48 +279,53 @@
       $("#dConfirm").innerHTML = confirmBox(cut.length === 1 ? "Day " + cut[0].day + " has " + pl + ". Remove it?" :
         "Days " + listJoin(cut.map(function (d) { return d.day; })) + " have " + pl + ". Remove them?", "days-yes");
     } else $("#dConfirm").innerHTML = "";
-    $("#build").disabled = !allStops().length;
-    renderDays(); renderPlaces();
+    var total = allStops().length;
+    $("#build").disabled = !total;
+    $("#tpSum").textContent = total ? total + " place" + (total > 1 ? "s" : "") + " over " + T.days + " day" + (T.days > 1 ? "s" : "") : "Add a place to open your trip.";
+    renderDayTabs(); renderDay(); renderPlaces();
     if (key) { var el = $(key); if (el && !el.disabled) el.focus(); }
   }
 
-  function renderDays() {
-    var st = KC.getStatus();
-    $("#bdays").innerHTML = T.plan.map(function (d, di) {
-      var area = KC.dayArea(d.stops), last = d.stops.length - 1, h = "";
-      h += '<section class="bday" aria-labelledby="bd' + di + '"><div class="bday-head"><div><h3 id="bd' + di + '">Day ' + d.day + "</h3>" +
-        (area ? '<p class="area">' + esc(area) + "</p>" : "") + "</div>" +
-        (d.stops.length ? '<button class="btn ghost small" data-act="clear" data-id="d' + di + '" data-day="' + di + '" aria-label="Clear Day ' + d.day + '">Clear day</button>' : "") + "</div>";
-      if (ui.confirm && ui.confirm.kind === "clear" && ui.confirm.day === di)
-        h += confirmBox("Remove all " + d.stops.length + " place" + (d.stops.length > 1 ? "s" : "") + " from Day " + d.day + "?", "clear-yes");
-      if (!d.stops.length) return h + '<p class="empty">No places yet. Add one from the list below.</p></section>';
-      h += '<ol class="bstops">' + d.stops.map(function (id, i) {
-        var p = KC.placeById(id), nm = esc(p.name);
-        return '<li class="bstop"><span class="nm">' + nm + '</span><span class="meta">' + esc(regionName(p.region)) + '</span><span class="pw" data-pill="' + id + '">' + pill(st[id]) + "</span>" +
-          '<div class="ctl">' +
-            '<button data-act="up" data-id="' + id + '" data-day="' + di + '" aria-label="Move ' + nm + ' up"' + (i === 0 ? " disabled" : "") + ">Up</button>" +
-            '<button data-act="down" data-id="' + id + '" data-day="' + di + '" aria-label="Move ' + nm + ' down"' + (i === last ? " disabled" : "") + ">Down</button>" +
-            '<button data-act="remove" data-id="' + id + '" aria-label="Remove ' + nm + " from Day " + d.day + '">Remove</button>' +
-            (T.plan.length > 1 ? '<select class="moveto" data-id="' + id + '" aria-label="Move ' + nm + ' to another day"><option value="">Move to</option>' +
-              T.plan.map(function (x, xi) { return xi === di ? "" : '<option value="' + xi + '">Day ' + x.day + "</option>"; }).join("") + "</select>" : "") +
-          "</div></li>";
-      }).join("") + "</ol>";
-      h += spreadNote(d.stops);
-      var near = nearby(d.stops);
-      h += '<div class="near"><p class="label">Nearby</p>' + (near.length
-        ? "<ul>" + near.map(function (x) {
-            return "<li><span>" + esc(x.p.name) + ", " + KC.fmtKm(x.km) + " from " + esc(KC.placeById(x.from).name) + "</span>" +
-              '<button class="btn ghost small" data-act="add" data-id="' + x.p.id + '" data-day="' + di + '" aria-label="Add ' + esc(x.p.name) + " to Day " + d.day + '">Add</button></li>';
-          }).join("") + '</ul><p class="fine">Distances are straight-line and approximate.</p>'
-        : '<p class="fine">Nothing else within 15 km. Browse all places below.</p>') + "</div>";
-      return h + "</section>";
+  function renderDayTabs() {
+    $("#dtabs").innerHTML = T.plan.map(function (d, di) {
+      var k = d.stops.length;
+      return '<button type="button" class="dtab" data-act="tab" data-id="tab' + di + '" data-day="' + di + '" aria-pressed="' + (di === ui.day) + '" aria-label="Day ' + d.day + ", " + (k ? k + " place" + (k > 1 ? "s" : "") : "empty") + '">' +
+        d.day + '<span class="dots" aria-hidden="true">' + new Array(Math.min(k, 4) + 1).join("<i></i>") + (k > 4 ? "<b>+</b>" : "") + "</span></button>";
     }).join("");
+  }
+
+  function renderDay() {
+    var st = KC.getStatus(), d = T.plan[ui.day], di = ui.day, area = KC.dayArea(d.stops), last = d.stops.length - 1;
+    var h = '<div class="dp-head"><div><h3 id="dpTitle">Day ' + d.day + "</h3>" + (area ? '<p class="area">' + esc(area) + "</p>" : "") + "</div>" +
+      (d.stops.length ? '<button class="btn ghost small" data-act="clear" data-id="clear' + di + '" aria-label="Clear Day ' + d.day + '">Clear day</button>' : "") + "</div>";
+    if (ui.confirm && ui.confirm.kind === "clear" && ui.confirm.day === di)
+      h += confirmBox("Remove all " + d.stops.length + " place" + (d.stops.length > 1 ? "s" : "") + " from Day " + d.day + "?", "clear-yes");
+    if (!d.stops.length) { $("#dpanel").innerHTML = h + '<p class="empty">No places yet. Add one from All places.</p>'; return; }
+    h += '<ol class="dstops">' + d.stops.map(function (id, i) {
+      var p = KC.placeById(id), nm = esc(p.name);
+      return '<li><span class="n" aria-hidden="true">' + (i + 1) + '</span><div class="ds-body"><span class="nm">' + nm + '</span><span class="meta">' + esc(regionName(p.region)) + "</span>" +
+        '<div class="ds-row"><span class="pw" data-pill="' + id + '">' + pill(st[id]) + '</span><div class="ctl">' +
+          '<button data-act="up" data-id="' + id + '" aria-label="Move ' + nm + ' up"' + (i === 0 ? " disabled" : "") + ">&uarr;</button>" +
+          '<button data-act="down" data-id="' + id + '" aria-label="Move ' + nm + ' down"' + (i === last ? " disabled" : "") + ">&darr;</button>" +
+          (T.plan.length > 1 ? '<select class="moveto" data-id="' + id + '" aria-label="Move ' + nm + ' to another day"><option value="">Move</option>' +
+            T.plan.map(function (x, xi) { return xi === di ? "" : '<option value="' + xi + '">Day ' + x.day + "</option>"; }).join("") + "</select>" : "") +
+          '<button data-act="remove" data-id="' + id + '" aria-label="Remove ' + nm + " from Day " + d.day + '">&times;</button>' +
+        "</div></div></div></li>";
+    }).join("") + "</ol>";
+    h += spreadNote(d.stops);
+    var near = nearby(d.stops);
+    h += '<div class="near"><p class="label">Nearby</p>' + (near.length
+      ? "<ul>" + near.map(function (x) {
+          return "<li><span>" + esc(x.p.name) + ", " + KC.fmtKm(x.km) + " from " + esc(KC.placeById(x.from).name) + "</span>" +
+            '<button class="btn ghost small" data-act="add" data-id="' + x.p.id + '" aria-label="Add ' + esc(x.p.name) + " to Day " + d.day + '">Add</button></li>';
+        }).join("") + '</ul><p class="fine">Distances are straight-line and approximate.</p>'
+      : '<p class="fine">Nothing else within 15 km. Browse all places.</p>') + "</div>";
+    $("#dpanel").innerHTML = h;
   }
 
   function renderPlaces() {
     if (!$("#plist")) return;
     var q = ui.pq.trim().toLowerCase(), st = KC.getStatus();
-    if (ui.addDay > T.days) ui.addDay = 1;
     var list = D.places.filter(function (p) {
       return (!ui.interests.length || p.tags.some(function (t) { return ui.interests.indexOf(t) > -1; })) &&
         (!q || (p.name + " " + regionName(p.region) + " " + p.blurb).toLowerCase().indexOf(q) > -1);
@@ -322,9 +334,7 @@
     $("#plist").innerHTML = list.length ? list.map(function (p) {
       var d = dayOf(p.id), nm = esc(p.name), act;
       if (d > -1) act = '<span class="in">In Day ' + (d + 1) + '</span><button class="btn ghost small" data-act="remove" data-id="' + p.id + '" aria-label="Remove ' + nm + " from Day " + (d + 1) + '">Remove</button>';
-      else act = '<select class="addday" data-id="' + p.id + '" aria-label="Day to add ' + nm + ' to">' +
-        T.plan.map(function (x, xi) { return '<option value="' + xi + '"' + (xi === ui.addDay - 1 ? " selected" : "") + ">Add to Day " + x.day + "</option>"; }).join("") + "</select>" +
-        '<button class="btn small" data-act="add" data-id="' + p.id + '" aria-label="Add ' + nm + ' to the chosen day">Add</button>';
+      else act = '<button class="btn small" data-act="add" data-id="' + p.id + '" aria-label="Add ' + nm + " to Day " + (ui.day + 1) + '">Add to Day ' + (ui.day + 1) + "</button>";
       return '<li class="prow"><div><span class="nm">' + nm + '</span> <span class="meta">' + esc(regionName(p.region)) + '</span><p class="blurb">' + esc(p.blurb) + "</p>" +
         '<span class="pw" data-pill="' + p.id + '">' + pill(st[p.id]) + '</span></div><div class="pact">' + act + "</div></li>";
     }).join("") : '<li class="none muted">No places match. Clear the search or change the interests.</li>';
@@ -387,14 +397,24 @@
     var onTrip = t ? allStops(t).map(function (id) { return KC.placeById(id).region; }) : [];
     var all = D.listings.filter(function (l) {
       return l.type === ui.tab && (!ui.lregion || l.region === ui.lregion) &&
-        (!q || (l.name + " " + l.note + " " + regionName(l.region)).toLowerCase().indexOf(q) > -1);
+        (!q || (l.name + " " + l.note + " " + (l.area || "") + " " + regionName(l.region)).toLowerCase().indexOf(q) > -1);
     }).sort(function (a, b) { return (onTrip.indexOf(b.region) > -1) - (onTrip.indexOf(a.region) > -1); });
     var shown = all.slice(0, ui.lshow);
     $("#listing").innerHTML = shown.length ? shown.map(function (l) {
-      var act = l.type === "move" ? "" : '<button class="btn ghost small" disabled title="Contact details are added once partners are verified">Call</button>';
       var near = onTrip.indexOf(l.region) > -1 ? '<span class="tag">On your trip</span>' : "";
-      return '<li><span class="nm">' + esc(l.name) + near + '</span><span class="meta">' + esc(regionName(l.region)) + ". " + esc(l.note) + '</span><span class="act">' + act + "</span></li>";
-    }).join("") : '<li class="none muted">Nothing here yet. Try another area or clear the search.</li>';
+      if (l.type === "move") return '<li><span class="nm">' + esc(l.name) + near + '</span><span class="meta">' + esc(regionName(l.region)) + ". " + esc(l.note) + "</span></li>";
+      var act = "";
+      if (l.phone) act += '<a class="btn ghost small" href="tel:' + esc(l.phone.replace(/[^0-9+]/g, "")) + '" aria-label="Call ' + esc(l.name) + '">Call</a>';
+      if (l.email) act += '<a class="btn ghost small" href="mailto:' + esc(l.email) + '" aria-label="Email ' + esc(l.name) + '">Email</a>';
+      if (l.web) act += '<a class="btn ghost small" href="' + esc(l.web) + '" target="_blank" rel="noopener" aria-label="Open page for ' + esc(l.name) + '">Page</a>';
+      return '<li><span class="nm">' + esc(l.name) + ' <span class="lvl lvl-' + esc(l.level) + '">' + esc(D.levels[l.level]) + "</span>" + near + "</span>" +
+        '<span class="meta">' + esc(l.area || regionName(l.region)) + ". " + esc(l.note) + "</span>" +
+        (l.price ? '<span class="price">' + esc(l.price) + "</span>" : "") +
+        (l.phone ? '<span class="phone">' + esc(l.phone) + (l.email ? " · " + esc(l.email) : "") + "</span>" : (l.email ? '<span class="phone">' + esc(l.email) + "</span>" : "")) +
+        '<span class="src">Source: <a href="' + esc(l.source.url) + '" target="_blank" rel="noopener">' + esc(l.source.label) + "</a>, checked " + esc(D.checked) + "</span>" +
+        '<span class="act">' + act + "</span></li>";
+    }).join("") + (ui.tab === "move" ? "" : '<li class="disc">Prices are indicative, as published on the date checked. Khongchat does not take bookings or commission. Businesses can ask to be updated or removed through the Directorate of Tourism.</li>')
+      : '<li class="none muted">Nothing here yet. Try another area or clear the search.</li>';
     $("#lcount").textContent = all.length ? "Showing " + shown.length + " of " + all.length : "";
     var left = all.length - shown.length, more = $("#lmore");
     more.hidden = left <= 0;
@@ -638,14 +658,14 @@
       '<p>Khongchat means journey in Meiteilon. It gives visitors one reliable place to plan Manipur: a personal plan, place status verified by Manipur Tourism, a trip that still opens with no signal, and a craft passport that sends visitors to local makers.</p>' +
       '<p>Built for the Re-imagining Manipur Hackathon 2026 (Problem Statement 1: Smart Manipur Tourism Discovery Platform). It also covers light versions of Problem Statements 2, 5, 6 and 7.</p>' +
       "<h2>Why</h2><ul>" + D.sources.map(function (s) { return '<li><a href="' + s.url + '" target="_blank" rel="noopener">' + esc(s.label) + "</a></li>"; }).join("") + "</ul>" +
-      "<h2>What is real and what is demo</h2><ul><li>Places and festivals are real. Map positions are approximate. Festival dates move each year.</li><li>Listings marked (sample) are invented for the prototype.</li><li>Place status is demo data entered from the staff dashboard.</li></ul>" +
+      "<h2>What is real and what is demo</h2><ul><li>Places and festivals are real. Map positions are approximate. Festival dates move each year.</li><li>Stay, Eat, Guides and Crafts listings are real, taken from public government, business and travel-guide pages, with the source and date on each one. Prices are indicative. Craft passport partners and QR codes are demo.</li><li>Place status is demo data entered from the staff dashboard.</li></ul>" +
       '<h2>Credits</h2><table><tr><th>Item</th><th>Licence</th></tr>' +
       "<tr><td>Hero photo: Loktak Lake, by Leeder Bose (Unsplash)</td><td>Unsplash License</td></tr>" +
       "<tr><td>Fraunces and IBM Plex Sans fonts</td><td>SIL Open Font License 1.1</td></tr>" +
       "<tr><td>qrcode-generator by Kazuhiko Arase</td><td>MIT</td></tr>" +
       "<tr><td>AI assistance: Claude (Anthropic) for planning, research, design and code, reviewed by the team</td><td>Disclosure</td></tr></table>" +
       '<h2 id="privacy">Privacy</h2><p>Khongchat has no accounts for visitors. Your interests, trip, permit checklist and passport stamps are stored only in this browser. Nothing is sent to a server. There are no analytics and no tracking cookies. Clearing your browser data removes everything.</p>' +
-      '<h2 id="terms">Terms of use</h2><p>This is a prototype for a hackathon. Information is provided for planning only and may be out of date. Always check timings, permits and advisories with Manipur Tourism before you travel. Sample listings are not real businesses. Do not rely on this prototype in an emergency: call 112.</p>' +
+      '<h2 id="terms">Terms of use</h2><p>This is a prototype for a hackathon. Information is provided for planning only and may be out of date. Always check timings, permits and advisories with Manipur Tourism before you travel. Listings come from public sources and may be out of date. Call to confirm before you travel. Craft passport partners are demo. Do not rely on this prototype in an emergency: call 112.</p>' +
       "</article>";
     if (section) setTimeout(function () { scrollToId(section); }, 50);
   }

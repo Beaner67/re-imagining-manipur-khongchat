@@ -115,9 +115,10 @@ Original design. Colours come from the phanek (Manipuri wrap) border: maroon, go
 
 | Data | Source | Notes |
 |---|---|---|
-| 15 places, with areas, tags, hours and tips | Public information, checked by the team | Coordinates are approximate |
-| 5 festivals | Public information | Dates vary each year. Confirm with Manipur Tourism. |
-| Listings (homestays, food, guides, artisans) | **Sample data, invented for the demo** | Every sample is labelled "(sample)" in the app |
+| 22 places across the valley and four hill districts, with areas, tags, hours and tips | Public information, checked by the team | Coordinates are approximate |
+| 17 festivals (Meitei, Naga, Kuki and statewide) | Public information | Dates vary each year. Confirm with Manipur Tourism. |
+| Listings (stay, eat, guides, crafts) | **Real, from public sources, checked 22 Sep 2026** | 22 listings, plus 2 getting-there notes. Each shows its source link, the date checked and a trust label: Govt listed (Imphal West, Imphal East and Ukhrul district sites, Manipur Tourism, Incredible India), Business website (Classic Group of Hotels) or Travel guide, call to confirm (Wikivoyage, WanderOn, Responsible Tourism India). Prices are indicative, as published. Only publicly listed contacts are used. No booking sites were scraped. |
+| Craft passport partners and QR codes | **Demo** | Partner names are labelled "(sample)" |
 | Place status (Open, Advisory, Closed) | **Demo data**, entered from the dashboard | In production this comes from the Tourism Department |
 
 Data lives in `js/data.js`. To add a place or a state, edit that one file.
@@ -168,7 +169,7 @@ fonts/                  Self-hosted fonts (OFL)
 ## 9. Limits of the prototype
 
 - Live sync works between tabs in one browser. Cross-device sync needs the Supabase step.
-- Listings and status values are demo data.
+- Place status values are demo data. Listings are real but can go out of date; a live version would let the Tourism Department verify and update them from the staff dashboard.
 - The map is a schematic, not a navigation map.
 - The staff dashboard uses a client-side demo PIN. Production needs real Tourism Department accounts.
 

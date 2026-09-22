@@ -1,6 +1,6 @@
 /* Khongchat demo data.
    Places and events are real. Coordinates are approximate.
-   Listings (homestays, guides, artisans) are SAMPLE data for the prototype.
+   Listings are real, from public sources (see the note above them). Craft passport partners are demo.
    Event dates vary each year: confirm with Manipur Tourism before publishing. */
 
 window.KC_DATA = {
@@ -109,29 +109,124 @@ window.KC_DATA = {
       blurb: "The hill district's famous oranges, with a farmers' market and local food." }
   ],
 
-  /* SAMPLE LISTINGS: invented for the prototype. Replace with verified partners. */
+  /* REAL LISTINGS, researched 22 Sep 2026 from public sources.
+     level: "govt"      = listed on a Government of Manipur / India website
+            "business"  = published by the business on its own website
+            "directory" = travel guide or directory; call to confirm
+     Prices are indicative, as published on the date checked. Contacts are only those the business or govt published. */
   listings: [
-    { type: "stay", name: "Phumdi View Homestay (sample)", region: "loktak", note: "4 rooms, lake-facing, meals included", stampId: "loktak" },
-    { type: "stay", name: "Kangla Courtyard Guesthouse (sample)", region: "imphal", note: "Walk to Kangla and Ima Keithel" },
-    { type: "stay", name: "Moirang Lakeside Rooms (sample)", region: "loktak", note: "Near the INA Memorial, boat trips arranged" },
-    { type: "stay", name: "Andro Village Homestay (sample)", region: "east", note: "Stay with a potter's family" },
-    { type: "stay", name: "Shirui Hill Homestay (sample)", region: "ukhrul", note: "Tangkhul family home, trek starts at the door" },
-    { type: "stay", name: "Ukhrul Town Lodge (sample)", region: "ukhrul", note: "Central, hot water, parking" },
-    { type: "stay", name: "Mao Gate Guesthouse (sample)", region: "senapati", note: "Base for the Dzuko trek" },
-    { type: "stay", name: "Tamenglong Orchard Stay (sample)", region: "tamenglong", note: "Orange farm, winter fruit season" },
-    { type: "eat", name: "Ima's Kitchen (sample)", region: "imphal", note: "Eromba, singju, chak-hao kheer", stampId: "imakeithel" },
-    { type: "eat", name: "Loktak Fish Thali (sample)", region: "loktak", note: "Local fish curry, lunch only" },
-    { type: "eat", name: "Paona Bazaar Tea Stall (sample)", region: "imphal", note: "Morning tea and kanghou snacks" },
-    { type: "eat", name: "Tangkhul Kitchen (sample)", region: "ukhrul", note: "Smoked pork, bamboo shoot, hawaijar" },
-    { type: "guide", name: "Valley Heritage Walks (sample)", region: "imphal", note: "Kangla and old city, English and Hindi" },
-    { type: "guide", name: "Shirui Trek Guides (sample)", region: "ukhrul", note: "Day treks, lily season" },
-    { type: "guide", name: "Dzuko Valley Guides (sample)", region: "senapati", note: "Overnight treks from Mao" },
-    { type: "craft", name: "Andro Pottery Collective (sample)", region: "east", note: "Hand-built black pottery, buy direct", stampId: "andro" },
-    { type: "craft", name: "Wangkhei Phee Weavers (sample)", region: "imphal", note: "Handloom phanek and innaphi" },
-    { type: "craft", name: "Longpi Stone Pottery (sample)", region: "ukhrul", note: "Black stone pottery from Longpi village" },
+    /* ---------- STAY ---------- */
+    { type: "stay", name: "Sendra Park and Resort", region: "loktak", area: "Sendra hills, above Loktak Lake, about 30 km from Imphal",
+      note: "Deluxe rooms and eco cottages. Sangai Cafe on site. Keibul Lamjao visits arranged with notice.",
+      price: "Deluxe from Rs 4,400 single, Rs 4,950 double. Cottage Rs 7,499. Plus GST. Tariff valid Apr 2026 to Mar 2027.",
+      phone: "+91 81319 80420", email: "reservation@theclassichotel.in",
+      level: "business", source: { label: "Classic Group of Hotels", url: "https://www.classicgroupofhotels.com/sendra-resort/" } },
+    { type: "stay", name: "Maipakchao Family Home Stay", region: "loktak", area: "Thanga island, Loktak Lake, near Moirang",
+      note: "Family-run. Simple rooms with private toilet. Boat rides, go out with local fishermen.",
+      price: "Rs 1,200 per person per night, meals included.",
+      web: "https://www.facebook.com/Maipakchao-family-stay-loktak-Manipur-394953554281803/",
+      level: "directory", source: { label: "Responsible Tourism India", url: "https://www.responsibletourismindia.com/stay/maipakchao-family-home-stay/318" } },
+    { type: "stay", name: "Loktak Aqua Inn floating homestay", region: "loktak", area: "Thanga Karang, Loktak Lake",
+      note: "Eco floating huts on the phumdis.",
+      price: "Around Rs 4,032 per night.",
+      phone: "+91 96125 93606",
+      level: "directory", source: { label: "Wikivoyage", url: "https://en.wikivoyage.org/wiki/Floating_restaurants_and_homestays_in_the_Loktak_Lake" } },
+    { type: "stay", name: "Hotel Imphal", region: "imphal", area: "North AOC, Imphal",
+      note: "Central hotel run by the Classic Group. Near the Directorate of Tourism.",
+      price: "Tariff on request.",
+      phone: "0385 242 2840", email: "imphalreservation@theclassichotel.in",
+      level: "business", source: { label: "hotelimphal.com", url: "https://www.hotelimphal.com/restaurant/" } },
+    { type: "stay", name: "Hearth of Imphal", region: "imphal", area: "About 8 km from Imphal airport",
+      note: "Homestay.",
+      price: "From Rs 1,800 per night.",
+      phone: "+91 70855 93415",
+      level: "directory", source: { label: "WanderOn", url: "https://wanderon.in/blogs/homestays-in-imphal" } },
+    { type: "stay", name: "Hotel Tip Top", region: "ukhrul", area: "Phungreitang, Ukhrul",
+      note: "Base for Shirui Hills.", price: "Tariff on request.",
+      phone: "+91 98627 16098",
+      level: "govt", source: { label: "Ukhrul District, Govt of Manipur", url: "https://ukhrul.nic.in/accommodation/" } },
+    { type: "stay", name: "Kopa's Eatery and Lodging", region: "ukhrul", area: "Phungreitang, opposite ZEO office, Ukhrul",
+      note: "Rooms and a kitchen in town.", price: "Tariff on request.",
+      phone: "+91 82599 22827",
+      level: "govt", source: { label: "Ukhrul District, Govt of Manipur", url: "https://ukhrul.nic.in/accommodation/" } },
+
+    /* ---------- EAT ---------- */
+    { type: "eat", name: "Luxmi Kitchen", region: "imphal", area: "Wahengbam Leikai Road, Sagolband, Imphal",
+      note: "Manipuri thali with 13 or more dishes. Try sana thongba.",
+      price: "Price not published. Call to confirm.",
+      phone: "0385 244 0885",
+      level: "directory", source: { label: "WanderOn", url: "https://wanderon.in/blogs/places-to-eat-in-imphal" } },
+    { type: "eat", name: "Hotel Imoinu", region: "imphal", area: "Imphal",
+      note: "Veg and non-veg Manipuri thali. Fish thali. Open 24 hours.",
+      price: "About Rs 400 for two.",
+      level: "directory", source: { label: "WanderOn", url: "https://wanderon.in/blogs/places-to-eat-in-imphal" } },
+    { type: "eat", name: "Imphal Cafe, Hotel Imphal", region: "imphal", area: "North AOC, Imphal",
+      note: "Indian, Chinese and continental. Breakfast 6:30 to 10, lunch 12 to 3, dinner 6 to 9:30.",
+      price: "Price not published.",
+      phone: "0385 242 2840", email: "fnbimphal@theclassichotel.in",
+      level: "business", source: { label: "hotelimphal.com", url: "https://www.hotelimphal.com/restaurant/" } },
+    { type: "eat", name: "Loktak Heritage Floating Hut", region: "loktak", area: "Thanga, Loktak Lake",
+      note: "Multi-storey floating house. Fish and vegetarian food.",
+      price: "Price not published.",
+      phone: "+91 81198 63210",
+      level: "directory", source: { label: "Wikivoyage", url: "https://en.wikivoyage.org/wiki/Floating_restaurants_and_homestays_in_the_Loktak_Lake" } },
+    { type: "eat", name: "Sangai Cafe, Sendra", region: "loktak", area: "Sendra Park and Resort",
+      note: "Indian, Chinese and local food with a view over Loktak.",
+      price: "Price not published.",
+      phone: "+91 81319 80420",
+      level: "business", source: { label: "Classic Group of Hotels", url: "https://www.classicgroupofhotels.com/sendra-resort/" } },
+
+    /* ---------- GUIDES (tour operators listed by Imphal West district) ---------- */
+    { type: "guide", name: "Directorate of Tourism, Manipur", region: "imphal", area: "North AOC, Imphal West",
+      note: "Ask here for government-registered tourist guides.",
+      price: "Free to ask.",
+      phone: "0385 242 1794", email: "mtqueries@gmail.com",
+      level: "govt", source: { label: "Manipur Tourism", url: "https://manipurtourism.gov.in/contact-us/" } },
+    { type: "guide", name: "Classic Tours and Travels", region: "imphal", area: "North AOC, Imphal West",
+      note: "Day tours to custom tours.", price: "Packages on request.",
+      phone: "+91 81319 80420", email: "travels@theclassichotel.in",
+      level: "govt", source: { label: "Imphal West District, Govt of Manipur", url: "https://imphalwest.nic.in/tourist-packages/" } },
+    { type: "guide", name: "Shija Tours and Travels", region: "imphal", area: "Meitei Langol, Lamphelpat, Imphal",
+      note: "Day tours to custom tours.", price: "Packages on request.",
+      phone: "+91 94026 99699", email: "shijatoursandtravels@gmail.com",
+      level: "govt", source: { label: "Imphal West District, Govt of Manipur", url: "https://imphalwest.nic.in/tourist-packages/" } },
+    { type: "guide", name: "Seven Sister Holidays", region: "imphal", area: "M G Avenue, Imphal",
+      note: "Day tours to custom tours.", price: "Packages on request.",
+      phone: "0385 244 3977",
+      level: "govt", source: { label: "Imphal West District, Govt of Manipur", url: "https://imphalwest.nic.in/tourist-packages/" } },
+    { type: "guide", name: "KB Enterprises", region: "imphal", area: "Imphal",
+      note: "Tour operator.", price: "Packages on request.",
+      phone: "+91 98620 28656", email: "kbentp@gmail.com",
+      level: "govt", source: { label: "Imphal West District, Govt of Manipur", url: "https://imphalwest.nic.in/tourist-packages/" } },
+
+    /* ---------- CRAFTS ---------- */
+    { type: "craft", name: "Khwairamband Ima Keithel", region: "imphal", area: "Khwairamband Bazaar, Imphal",
+      note: "About 3,000 women vendors. Handloom shawls, crafts, jewellery.",
+      price: "Bargaining is normal.",
+      level: "govt", source: { label: "Incredible India", url: "https://www.incredibleindia.gov.in/en/manipur/imphal/the-captivating-world-of-shopping-in-imphal" } },
+    { type: "craft", name: "MHHDC sales emporium", region: "imphal", area: "Paona Bazaar, Imphal",
+      note: "Manipur Handlooms and Handicrafts Development Corporation shop. Silk, handwoven shawls, bamboo work.",
+      price: "Government shop.",
+      level: "govt", source: { label: "Incredible India", url: "https://www.incredibleindia.gov.in/en/manipur/imphal/the-captivating-world-of-shopping-in-imphal" } },
+    { type: "craft", name: "GM Hall", region: "imphal", area: "Central Imphal",
+      note: "Handlooms, toys, shawls and handicrafts.",
+      price: "Fixed prices.",
+      level: "govt", source: { label: "Incredible India", url: "https://www.incredibleindia.gov.in/en/manipur/imphal/the-captivating-world-of-shopping-in-imphal" } },
+    { type: "craft", name: "Andro village and Mutua Bahadur Museum", region: "east", area: "Andro, about 21 km from Imphal",
+      note: "Coil pottery village. Museum of pottery, manuscripts, bell metal and tribal houses.",
+      price: "Check at the gate.",
+      level: "govt", source: { label: "Imphal East District, Govt of Manipur", url: "https://imphaleast.nic.in/tourist-place/mutua_bahadur/" } },
+    { type: "craft", name: "Longpi (Nungbi) black pottery", region: "ukhrul", area: "Nungbi, 38 km from Ukhrul on NH150",
+      note: "Tangkhul black stone pottery made without a wheel. Cookers, kettles, cups.",
+      price: "Buy direct from potters.",
+      level: "govt", source: { label: "Ukhrul District, Govt of Manipur", url: "https://ukhrul.nic.in/tourist-place/nungbi-pottery/" } },
+
+    /* ---------- GETTING THERE ---------- */
     { type: "move", name: "Imphal Airport to city", region: "imphal", note: "About 8 km. Prepaid taxis at arrivals." },
     { type: "move", name: "Imphal to Moirang and Loktak", region: "loktak", note: "About 45 km by road. Shared taxis from Imphal." }
   ],
+  checked: "22 Sep 2026",
+  levels: { govt: "Govt listed", business: "Business website", directory: "Travel guide, call to confirm" },
 
   stamps: [
     { id: "andro", name: "Andro pottery", where: "Andro Pottery Collective" },
