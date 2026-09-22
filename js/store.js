@@ -80,15 +80,33 @@
     isStaff: function () { try { return sessionStorage.getItem("kc_staff") === "1"; } catch (e) { return false; } },
     setStaff: function (v) { try { v ? sessionStorage.setItem("kc_staff", "1") : sessionStorage.removeItem("kc_staff"); } catch (e) {} },
 
-    getStamps: function () { return read(K.stamps, []); },
+    /* Stamps: [{ id, at }]. Older saves were plain ids: they become { id, at: null }. */
+    getStamps: function () {
+      return read(K.stamps, []).map(function (x) { return typeof x === "string" ? { id: x, at: null } : x; });
+    },
+    stampAt: function (id) { var s = KC.getStamps().filter(function (x) { return x.id === id; })[0]; return s ? s.at : null; },
+    hasStamp: function (id) { return KC.getStamps().some(function (x) { return x.id === id; }); },
     addStamp: function (id) {
       var st = KC.getStamps();
-      var isNew = st.indexOf(id) === -1;
-      if (isNew) { st.push(id); write(K.stamps, st); }
+      var isNew = !KC.hasStamp(id);
+      if (isNew) {
+        st.push({ id: id, at: new Date().toISOString() });
+        write(K.stamps, st);
+        // Stamps issued per craft, for the dashboard (in production: a stamps table). Survives a passport reset.
+        var log = read("kc_stamplog_v1", []);
+        log.push({ id: id, at: st[st.length - 1].at });
+        write("kc_stamplog_v1", log.slice(-500));
+      }
       if (chan) chan.postMessage({ type: "stamp", id: id });
       return isNew;
     },
-    resetStamps: function () { write(K.stamps, []); },
+    resetStamps: function () { write(K.stamps, []); if (chan) chan.postMessage({ type: "stamp" }); },
+    stampCounts: function () {
+      var n = {};
+      read("kc_stamplog_v1", []).forEach(function (e) { n[e.id] = (n[e.id] || 0) + 1; });
+      return n;
+    },
+    listingByName: function (name) { return D.listings.filter(function (l) { return l.name === name; })[0] || null; },
 
     onChange: function (fn) { listeners.push(fn); },
 
@@ -119,7 +137,8 @@
       if (mins < 60) return mins + " min ago";
       var h = d.getHours(), m = d.getMinutes();
       var ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
-      return "today " + h + ":" + (m < 10 ? "0" : "") + m + " " + ap;
+      var day = d.toDateString() === new Date().toDateString() ? "today" : d.getDate() + " " + D.months[d.getMonth()];
+      return day + " " + h + ":" + (m < 10 ? "0" : "") + m + " " + ap;
     },
 
     stateLabel: function (s) {
@@ -133,6 +152,7 @@
     if (e.key === K.status) emit({ type: "status" });
     if (e.key === K.stamps) emit({ type: "stamp" });
     if (e.key === "kc_triplog_v1") emit({ type: "trip" });
+    if (e.key === "kc_stamplog_v1") emit({ type: "stamp" });
   });
 
   // Great-circle distance in km between two places (haversine).

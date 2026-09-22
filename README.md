@@ -31,7 +31,7 @@ Built for the **Re-imagining Manipur Hackathon 2026**, organised by the Departme
 | Trip builder | Pick 1 to 14 days, then add places to each day. Nearby suggestions come only from distance, so each day stays close together. |
 | Verified live status | Each place shows Open, Advisory or Closed. Tourism staff set it from a dashboard; tourist pages update at once. |
 | Works with no signal | Pages, trip, contacts and the ILP checklist are cached on the phone and open in airplane mode. |
-| Craft passport | Scan a QR code at an artisan stall or homestay to collect a stamp. Three stamps unlock a guided village walk. |
+| Craft passport | Four real crafts (Andro and Longpi pottery, Ima Keithel handloom, Moirang Phee). Scan the code where the craft is sold to collect a dated stamp, see where to buy, and save the record as a file. Codes are issued and counted from the Tourism dashboard. |
 | Events and listings | Festival calendar matched to interests. Stays, food, guides, crafts and transport listings. |
 
 ## 3. How we built it
@@ -118,7 +118,7 @@ Original design. Colours come from the phanek (Manipuri wrap) border: maroon, go
 | 22 places across the valley and four hill districts, with areas, tags, hours and tips | Public information, checked by the team | Coordinates are approximate |
 | 17 festivals (Meitei, Naga, Kuki and statewide) | Public information | Dates vary each year. Confirm with Manipur Tourism. |
 | Listings (stay, eat, guides, crafts) | **Real, from public sources, checked 22 Sep 2026** | 22 listings, plus 2 getting-there notes. Each shows its source link, the date checked and a trust label: Govt listed (Imphal West, Imphal East and Ukhrul district sites, Manipur Tourism, Incredible India), Business website (Classic Group of Hotels) or Travel guide, call to confirm (Wikivoyage, WanderOn, Responsible Tourism India). Prices are indicative, as published. Only publicly listed contacts are used. No booking sites were scraped. |
-| Craft passport partners and QR codes | **Demo** | Partner names are labelled "(sample)" |
+| Craft passport | Crafts, villages and GI tags are **real**. The reward, QR codes and stamp counts are **demo** | No artisan group has signed up yet. Each craft links to a real listing for where to buy |
 | Place status (Open, Advisory, Closed) | **Demo data**, entered from the dashboard | In production this comes from the Tourism Department |
 
 Data lives in `js/data.js`. To add a place or a state, edit that one file.
@@ -146,7 +146,7 @@ The service worker (offline mode) needs `http://localhost` or `https://`. It doe
 
 1. Open the site. Set the days, add places to each day. Tap "Open my trip".
 2. Open `#/admin` in a second tab (PIN 2026). Change a place's status. The trip page updates instantly.
-3. Open `#/stamp/andro` to collect a stamp (this is where the stall QR code points).
+3. Open `#/stamp/andro` to collect a stamp (this is where the printed code points). Codes for all four crafts are on `#/admin`.
 4. Turn off the network in developer tools, or switch the phone to airplane mode, and reload the trip page.
 
 ## 8. Project structure

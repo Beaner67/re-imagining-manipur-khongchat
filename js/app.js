@@ -4,7 +4,7 @@
   var main = document.getElementById("main");
   var head = document.getElementById("head");
   var PIN = "2026"; // Prototype only: client-side gate. Production uses real staff accounts.
-  var ui = { interests: [], pq: "", day: 0, confirm: null, month: new Date().getMonth(), tab: "stay", hl: null, lq: "", lregion: "", lshow: 5 };
+  var ui = { craft: null, interests: [], pq: "", day: 0, confirm: null, month: new Date().getMonth(), tab: "stay", hl: null, lq: "", lregion: "", lshow: 5 };
   var PAGE = 5; // listings shown per tab before "Show more"
   var cleanup = [];
 
@@ -31,9 +31,11 @@
 
   /* ---------- network badge ---------- */
   function net() {
-    var el = document.getElementById("net");
-    if (navigator.onLine) { el.textContent = "Online"; el.className = "net on"; }
-    else { el.textContent = "Offline. Saved trip works."; el.className = "net off"; }
+    var on = navigator.onLine;
+    $$("[data-net]").forEach(function (el) {
+      el.textContent = on ? "Online" : "Offline. Saved trip works.";
+      el.className = "net " + (on ? "on" : "off");
+    });
   }
   window.addEventListener("online", function () { net(); toast("Back online."); });
   window.addEventListener("offline", function () { net(); toast("<b>No signal.</b> Your saved trip still works."); });
@@ -52,6 +54,7 @@
     }
     if (m.type === "trip" && r === "admin") renderBars();
     if (m.type === "stamp" && r === "passport") render();
+    if (m.type === "stamp" && r === "admin") renderIssued();
   });
 
   /* ---------- router ---------- */
@@ -67,7 +70,7 @@
     var views = { home: home, trip: trip, passport: passport, stamp: stamp, admin: admin, about: about };
     (views[r.name] || home)(r.arg);
     head.classList.toggle("on-hero", r.name === "home" || r.name === "");
-    $$(".nav a").forEach(function (a) {
+    $$("[data-r]").forEach(function (a) {
       var on = a.getAttribute("data-r") === (r.name === "stamp" ? "passport" : r.name);
       if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
@@ -401,24 +404,29 @@
     }).sort(function (a, b) { return (onTrip.indexOf(b.region) > -1) - (onTrip.indexOf(a.region) > -1); });
     var shown = all.slice(0, ui.lshow);
     $("#listing").innerHTML = shown.length ? shown.map(function (l) {
-      var near = onTrip.indexOf(l.region) > -1 ? '<span class="tag">On your trip</span>' : "";
-      if (l.type === "move") return '<li><span class="nm">' + esc(l.name) + near + '</span><span class="meta">' + esc(regionName(l.region)) + ". " + esc(l.note) + "</span></li>";
-      var act = "";
-      if (l.phone) act += '<a class="btn ghost small" href="tel:' + esc(l.phone.replace(/[^0-9+]/g, "")) + '" aria-label="Call ' + esc(l.name) + '">Call</a>';
-      if (l.email) act += '<a class="btn ghost small" href="mailto:' + esc(l.email) + '" aria-label="Email ' + esc(l.name) + '">Email</a>';
-      if (l.web) act += '<a class="btn ghost small" href="' + esc(l.web) + '" target="_blank" rel="noopener" aria-label="Open page for ' + esc(l.name) + '">Page</a>';
-      return '<li><span class="nm">' + esc(l.name) + ' <span class="lvl lvl-' + esc(l.level) + '">' + esc(D.levels[l.level]) + "</span>" + near + "</span>" +
-        '<span class="meta">' + esc(l.area || regionName(l.region)) + ". " + esc(l.note) + "</span>" +
-        (l.price ? '<span class="price">' + esc(l.price) + "</span>" : "") +
-        (l.phone ? '<span class="phone">' + esc(l.phone) + (l.email ? " · " + esc(l.email) : "") + "</span>" : (l.email ? '<span class="phone">' + esc(l.email) + "</span>" : "")) +
-        '<span class="src">Source: <a href="' + esc(l.source.url) + '" target="_blank" rel="noopener">' + esc(l.source.label) + "</a>, checked " + esc(D.checked) + "</span>" +
-        '<span class="act">' + act + "</span></li>";
+      return listingItem(l, onTrip.indexOf(l.region) > -1 ? '<span class="tag">On your trip</span>' : "");
     }).join("") + (ui.tab === "move" ? "" : '<li class="disc">Prices are indicative, as published on the date checked. Khongchat does not take bookings or commission. Businesses can ask to be updated or removed through the Directorate of Tourism.</li>')
       : '<li class="none muted">Nothing here yet. Try another area or clear the search.</li>';
     $("#lcount").textContent = all.length ? "Showing " + shown.length + " of " + all.length : "";
     var left = all.length - shown.length, more = $("#lmore");
     more.hidden = left <= 0;
     more.textContent = "Show " + Math.min(left, PAGE) + " more";
+  }
+
+  /* One listing row, with its trust label, contacts and source. Also used in the passport detail. */
+  function listingItem(l, near) {
+    near = near || "";
+    if (l.type === "move") return '<li><span class="nm">' + esc(l.name) + near + '</span><span class="meta">' + esc(regionName(l.region)) + ". " + esc(l.note) + "</span></li>";
+    var act = "";
+    if (l.phone) act += '<a class="btn ghost small" href="tel:' + esc(l.phone.replace(/[^0-9+]/g, "")) + '" aria-label="Call ' + esc(l.name) + '">Call</a>';
+    if (l.email) act += '<a class="btn ghost small" href="mailto:' + esc(l.email) + '" aria-label="Email ' + esc(l.name) + '">Email</a>';
+    if (l.web) act += '<a class="btn ghost small" href="' + esc(l.web) + '" target="_blank" rel="noopener" aria-label="Open page for ' + esc(l.name) + '">Page</a>';
+    return '<li><span class="nm">' + esc(l.name) + ' <span class="lvl lvl-' + esc(l.level) + '">' + esc(D.levels[l.level]) + "</span>" + near + "</span>" +
+      '<span class="meta">' + esc(l.area || regionName(l.region)) + ". " + esc(l.note) + "</span>" +
+      (l.price ? '<span class="price">' + esc(l.price) + "</span>" : "") +
+      (l.phone ? '<span class="phone">' + esc(l.phone) + (l.email ? " · " + esc(l.email) : "") + "</span>" : (l.email ? '<span class="phone">' + esc(l.email) + "</span>" : "")) +
+      '<span class="src">Source: <a href="' + esc(l.source.url) + '" target="_blank" rel="noopener">' + esc(l.source.label) + "</a>, checked " + esc(D.checked) + "</span>" +
+      '<span class="act">' + act + "</span></li>";
   }
 
   /* =========================================================
@@ -545,32 +553,97 @@
   /* =========================================================
      PASSPORT
      ========================================================= */
+  function craftById(id) { return D.crafts.filter(function (c) { return c.id === id; })[0]; }
+  function collected() { return D.crafts.filter(function (c) { return KC.hasStamp(c.id); }); }
+  function orJoin(a, word) { return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " " + word + " " + a[a.length - 1]; }
+
   function passport(justGot) {
-    var got = KC.getStamps(), need = D.unlock.need, have = D.stamps.filter(function (s) { return got.indexOf(s.id) > -1; }).length;
+    var need = D.unlock.need, have = collected().length;
+    var missing = D.crafts.filter(function (c) { return !KC.hasStamp(c.id); }).map(function (c) { return esc(c.name); });
+    if (ui.craft && !KC.hasStamp(ui.craft)) ui.craft = null;
+    var left = need - have;
     main.innerHTML = '<div class="passport"><p class="kicker">Craft passport</p><h1 style="font-size:clamp(40px,6vw,64px);margin-bottom:12px">Stamp the stall.</h1>' +
-      '<p class="muted" style="max-width:560px;margin:0 0 28px">Scan the QR code at a potter\'s stall, a homestay or an Ima Keithel kitchen. Each stamp sends a visitor straight to a local maker. Zero commission.</p>' +
-      '<div class="book"><div class="stamps">' +
-      D.stamps.map(function (s) {
-        var ok = got.indexOf(s.id) > -1;
-        return '<div class="slot' + (ok ? " got" : "") + (ok && s.id === justGot ? " slam" : "") + '">' + (ok ? esc(s.name) + "<small>stamped</small>" : esc(s.name)) + "</div>";
-      }).join("") + "</div>" +
+      '<p class="muted" style="max-width:560px;margin:0 0 28px">Scan the code at the stall. The stamp is proof you bought from the maker, not from a middleman. Khongchat takes no commission.</p>' +
+      '<div class="book"><div class="stamps">' + D.crafts.map(function (c) { return slot(c, justGot); }).join("") + "</div>" +
       '<p class="label">' + have + " of " + need + " stamps</p>" +
-      '<div class="meter" aria-hidden="true"><i style="width:' + (have / need * 100) + '%"></i></div>' +
+      '<div class="meter" aria-hidden="true"><i style="width:' + Math.min(100, have / need * 100) + '%"></i></div>' +
       (have >= need
-        ? '<div class="reward"><p class="kicker" style="margin:0 0 4px">Unlocked</p><h3>' + esc(D.unlock.reward) + '</h3><p style="margin:4px 0 0">Show this screen to the Andro Pottery Collective (sample).</p></div>'
-        : '<div class="reward locked"><h3>' + (need - have) + " more stamp" + (need - have > 1 ? "s" : "") + " to go</h3><p style=\"margin:4px 0 0\">Unlocks: " + esc(D.unlock.reward) + ".</p></div>") +
+        ? '<div class="reward" id="reward" tabindex="-1"><p class="kicker" style="margin:0 0 4px">Unlocked</p><h3>' + esc(D.unlock.reward) + '</h3><p style="margin:4px 0 0">' + esc(D.unlock.note) + "</p></div>"
+        : '<div class="reward locked"><h3>' + left + " more stamp" + (left > 1 ? "s" : "") + " to go</h3>" +
+          '<p style="margin:4px 0 0">' + (left === missing.length ? "Still to collect: " + orJoin(missing, "and") : "Collect any " + left + " of: " + orJoin(missing, "or")) + ".</p>" +
+          '<p style="margin:4px 0 0">Unlocks: ' + esc(D.unlock.reward) + ". " + esc(D.unlock.note) + "</p></div>") +
       "</div>" +
-      '<p class="muted" style="font-size:14px;margin-top:20px">Where to find the codes: ' + D.stamps.map(function (s) { return esc(s.where) + " (sample)"; }).join(", ") + ". " +
-      '<button class="btn ghost small" id="resetStamps" style="margin-left:6px">Reset demo</button></p></div>';
-    $("#resetStamps").onclick = function () { KC.resetStamps(); passport(); toast("Passport reset."); };
+      '<div class="craft-detail" id="craftDetail" aria-live="polite">' + (ui.craft ? craftDetail(craftById(ui.craft)) : "") + "</div>" +
+      '<div class="pp-actions"><button class="btn small" id="savePass"' + (have ? "" : " disabled") + '>Save my passport</button><button class="btn ghost small" id="resetStamps">Reset demo</button></div>' +
+      '<p class="muted" style="font-size:14px;margin-top:16px">Codes are issued by Manipur Tourism and shown where each craft is sold: ' + D.crafts.map(function (c) { return esc(c.where); }).join("; ") + ".</p></div>";
+    $$("[data-craft]").forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute("data-craft");
+        ui.craft = ui.craft === id ? null : id;
+        $$("[data-craft]").forEach(function (x) { x.setAttribute("aria-expanded", x.getAttribute("data-craft") === ui.craft); });
+        $("#craftDetail").innerHTML = ui.craft ? craftDetail(craftById(ui.craft)) : "";
+        if (ui.craft) $("#craftDetail").scrollIntoView({ behavior: "smooth", block: "nearest" });
+      };
+    });
+    $("#craftDetail").onclick = function (e) {
+      if (!e.target.closest("[data-close]")) return;
+      var id = ui.craft; ui.craft = null; this.innerHTML = "";
+      var b = $('[data-craft="' + id + '"]'); if (b) { b.setAttribute("aria-expanded", "false"); b.focus(); }
+    };
+    $("#savePass").onclick = downloadPassport;
+    $("#resetStamps").onclick = function () { KC.resetStamps(); ui.craft = null; passport(); toast("Passport reset."); };
+  }
+
+  function slot(c, justGot) {
+    var ok = KC.hasStamp(c.id), at = KC.stampAt(c.id);
+    var inner = '<span class="sn">' + esc(c.name) + '</span><span class="ct">' + esc(c.craft) + "</span>" + (c.gi ? '<span class="gi">GI tagged</span>' : "");
+    if (!ok) return '<div class="slot">' + inner + '<small class="miss">Not yet</small></div>';
+    return '<button type="button" class="slot got' + (c.id === justGot ? " slam" : "") + '" data-craft="' + c.id + '" aria-expanded="' + (ui.craft === c.id) + '" aria-controls="craftDetail">' +
+      inner + "<small>" + (at ? "Stamped " + KC.relTime(at) : "Stamped") + '</small><span class="sr">. Show where to buy</span></button>';
+  }
+
+  /* Maker detail: about, where, and the real listing for where to buy. Never called a partner. */
+  function craftDetail(c) {
+    var l = KC.listingByName(c.listing), dot = KC.listingByName("Directorate of Tourism, Manipur");
+    var h = '<div class="cd"><div class="cd-head"><div><p class="kicker" style="margin:0 0 4px">' + esc(c.craft) + (c.gi ? " · GI tagged" : "") + "</p><h3>" + esc(c.name) + "</h3></div>" +
+      '<button class="btn ghost small" data-close aria-label="Close details for ' + esc(c.name) + '">Close</button></div>' +
+      "<p>" + esc(c.about) + '</p><p><b>Where to find it:</b> ' + esc(c.where) + ".</p>";
+    if (l) {
+      h += '<p class="label" style="margin-top:18px">Where to buy</p><ul class="list">' + listingItem(l) + "</ul>";
+      if (!l.phone && !l.email && dot)
+        h += '<p class="fine">No public phone number or email is listed for this seller. For directions, ask the Directorate of Tourism.</p>' +
+          '<a class="btn ghost small" href="tel:' + esc(dot.phone.replace(/[^0-9+]/g, "")) + '">Call the Directorate of Tourism</a>';
+    }
+    return h + "</div>";
+  }
+
+  /* The record belongs to the tourist: a plain JSON file of their stamps and dates. */
+  function downloadPassport() {
+    var data = {
+      app: "Khongchat craft passport",
+      saved: new Date().toISOString(),
+      note: "Your own record. Khongchat keeps it only on your device.",
+      stamps: collected().map(function (c) { return { id: c.id, name: c.name, at: KC.stampAt(c.id) }; })
+    };
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+    a.download = "khongchat-passport-" + data.saved.slice(0, 10) + ".json";
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    toast("Passport saved as a file.");
   }
 
   function stamp(id) {
-    var s = D.stamps.filter(function (x) { return x.id === id; })[0];
-    if (!s) { location.hash = "#/passport"; return; }
-    var isNew = KC.addStamp(id);
-    passport(id);
-    toast(isNew ? "<b>Stamp collected:</b> " + esc(s.name) : "You already have the " + esc(s.name) + " stamp.");
+    var c = craftById(id);
+    if (!c) {
+      main.innerHTML = '<div class="passport"><p class="kicker">Craft passport</p><h1 style="font-size:clamp(40px,6vw,64px);margin-bottom:12px">Unknown code.</h1>' +
+        '<p class="muted" style="margin:0 0 24px">That code is not a Khongchat craft stamp.</p><a class="btn" href="#/passport">Back to my passport</a></div>';
+      return;
+    }
+    var isNew = KC.addStamp(id), done = isNew && collected().length === D.unlock.need;
+    passport(isNew ? id : null);
+    if (done) { $("#reward").focus(); toast("Passport complete."); }
+    else toast(isNew ? "<b>Stamp collected:</b> " + esc(c.name) : "You already have the " + esc(c.name) + " stamp.");
   }
 
   /* =========================================================
@@ -590,19 +663,21 @@
       };
       return;
     }
-    var base = location.href.split("#")[0];
     main.innerHTML = '<div class="wrap admin"><div style="display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap">' +
       '<div><p class="kicker">Signed in as Manipur Tourism staff</p><h1>Place status</h1><p class="muted" style="margin:8px 0 0">Every change reaches tourist screens at once. Keep notes short.</p></div>' +
       '<div style="display:flex;gap:10px"><button class="btn ghost small" id="reset">Reset demo data</button><button class="btn small" id="out">Sign out</button></div></div>' +
       '<table class="table"><thead><tr><th>Place</th><th>Area</th><th>Status</th><th>Note for tourists</th><th>Updated</th></tr></thead><tbody id="rows"></tbody></table>' +
       '<div class="admin-grid"><div class="panel"><h3>Places saved in trips</h3><p class="muted" style="font-size:14px;margin:0 0 14px">Demand from trips planned on this device. Production counts every visitor.</p><div class="bars" id="bars"></div></div>' +
-      '<div class="panel"><div style="display:flex;justify-content:space-between;align-items:baseline"><h3>Stall QR codes</h3><button class="btn ghost small no-print" onclick="window.print()">Print</button></div>' +
-      '<p class="muted" style="font-size:14px;margin:0 0 14px">Print and place at each partner stall. Scanning adds a passport stamp.</p><div class="qrs">' +
-      D.stamps.map(function (s) {
-        var q = qrcode(0, "M"); q.addData(base + "#/stamp/" + s.id); q.make();
-        return '<div class="qr"><div class="code">' + q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }) + "</div>" + esc(s.name) + "</div>";
-      }).join("") + "</div></div></div></div>";
-    renderAdminTable(); renderBars();
+      '<section class="panel" aria-labelledby="cpH"><h3 id="cpH">Craft passport</h3>' +
+      '<p class="muted" style="font-size:14px;margin:0 0 10px">Print one code per craft and display it where the craft is sold. Scanning adds a stamp to the visitor\'s passport.</p>' +
+      '<p class="live-note">In a live version each code would be signed and rotated by the department, so it cannot be copied off a photo.</p>' +
+      '<div class="cgrid">' + D.crafts.map(function (c) {
+        return '<div class="ccard"><div class="code">' + qrSvg(c.id, 4) + "</div><b>" + esc(c.name) + '</b><span class="muted">Display at: ' + esc(c.where) + "</span>" +
+          '<span class="issued">Stamps issued in this demo: <b data-issued="' + c.id + '">0</b></span>' +
+          '<button class="btn ghost small" data-print="' + c.id + '" aria-label="Print the code for ' + esc(c.name) + '">Print</button></div>';
+      }).join("") + "</div></section></div></div>";
+    renderAdminTable(); renderBars(); renderIssued();
+    $$("[data-print]").forEach(function (b) { b.onclick = function () { printCode(b.getAttribute("data-print")); }; });
     $("#out").onclick = function () { KC.setStaff(false); admin(); };
     $("#reset").onclick = function () { KC.resetStatus(); toast("Demo data reset."); };
   }
@@ -638,6 +713,24 @@
     });
   }
 
+  function stampUrl(id) { return location.origin + location.pathname + "#/stamp/" + id; }
+  function qrSvg(id, cell) { var q = qrcode(0, "M"); q.addData(stampUrl(id)); q.make(); return q.createSvgTag({ cellSize: cell, margin: 0, scalable: true }); }
+  function renderIssued() {
+    var n = KC.stampCounts();
+    $$("[data-issued]").forEach(function (el) { el.textContent = n[el.getAttribute("data-issued")] || 0; });
+  }
+  /* Clean print view of one code: filled into a print-only block, so it works offline and without a popup. */
+  function printCode(id) {
+    var c = craftById(id), box = document.getElementById("printOne");
+    if (!box) { box = document.createElement("div"); box.id = "printOne"; box.className = "print-one"; document.body.appendChild(box); }
+    box.innerHTML = "<h2>" + esc(c.name) + '</h2><div class="code">' + qrSvg(id, 8) + "</div><p>Khongchat craft stamp. Government of Manipur, Department of Tourism.</p>";
+    document.body.classList.add("printing-one");
+    var done = function () { document.body.classList.remove("printing-one"); window.removeEventListener("afterprint", done); };
+    window.addEventListener("afterprint", done);
+    window.print();
+    setTimeout(done, 1000);
+  }
+
   function renderBars() {
     var el = document.getElementById("bars"); if (!el) return;
     var count = {};
@@ -658,19 +751,83 @@
       '<p>Khongchat means journey in Meiteilon. It gives visitors one reliable place to plan Manipur: a personal plan, place status verified by Manipur Tourism, a trip that still opens with no signal, and a craft passport that sends visitors to local makers.</p>' +
       '<p>Built for the Re-imagining Manipur Hackathon 2026 (Problem Statement 1: Smart Manipur Tourism Discovery Platform). It also covers light versions of Problem Statements 2, 5, 6 and 7.</p>' +
       "<h2>Why</h2><ul>" + D.sources.map(function (s) { return '<li><a href="' + s.url + '" target="_blank" rel="noopener">' + esc(s.label) + "</a></li>"; }).join("") + "</ul>" +
-      "<h2>What is real and what is demo</h2><ul><li>Places and festivals are real. Map positions are approximate. Festival dates move each year.</li><li>Stay, Eat, Guides and Crafts listings are real, taken from public government, business and travel-guide pages, with the source and date on each one. Prices are indicative. Craft passport partners and QR codes are demo.</li><li>Place status is demo data entered from the staff dashboard.</li></ul>" +
+      "<h2>What is real and what is demo</h2><ul><li>Places and festivals are real. Map positions are approximate. Festival dates move each year.</li><li>Stay, Eat, Guides and Crafts listings are real, taken from public government, business and travel-guide pages, with the source and date on each one. Prices are indicative.</li><li>In the craft passport, the crafts, the villages and the GI tags are real. The reward, the QR codes and the stamp counts are demo, and no artisan group has signed up yet.</li><li>Place status is demo data entered from the staff dashboard.</li></ul>" +
       '<h2>Credits</h2><table><tr><th>Item</th><th>Licence</th></tr>' +
       "<tr><td>Hero photo: Loktak Lake, by Leeder Bose (Unsplash)</td><td>Unsplash License</td></tr>" +
       "<tr><td>Fraunces and IBM Plex Sans fonts</td><td>SIL Open Font License 1.1</td></tr>" +
       "<tr><td>qrcode-generator by Kazuhiko Arase</td><td>MIT</td></tr>" +
       "<tr><td>AI assistance: Claude (Anthropic) for planning, research, design and code, reviewed by the team</td><td>Disclosure</td></tr></table>" +
       '<h2 id="privacy">Privacy</h2><p>Khongchat has no accounts for visitors. Your interests, trip, permit checklist and passport stamps are stored only in this browser. Nothing is sent to a server. There are no analytics and no tracking cookies. Clearing your browser data removes everything.</p>' +
-      '<h2 id="terms">Terms of use</h2><p>This is a prototype for a hackathon. Information is provided for planning only and may be out of date. Always check timings, permits and advisories with Manipur Tourism before you travel. Listings come from public sources and may be out of date. Call to confirm before you travel. Craft passport partners are demo. Do not rely on this prototype in an emergency: call 112.</p>' +
+      '<h2 id="terms">Terms of use</h2><p>This is a prototype for a hackathon. Information is provided for planning only and may be out of date. Always check timings, permits and advisories with Manipur Tourism before you travel. Listings come from public sources and may be out of date. Call to confirm before you travel. The craft passport reward and codes are demo. Do not rely on this prototype in an emergency: call 112.</p>' +
       "</article>";
     if (section) setTimeout(function () { scrollToId(section); }, 50);
   }
 
+  /* =========================================================
+     SIDE DRAWER (phones)
+     ========================================================= */
+  /* Built once in index.html. Opening pushes no history entry: Back closes it by way of
+     hashchange, so a person never loses the page they were reading. */
+  function initDrawer() {
+    var drawer = $("#drawer"), overlay = $("#overlay"), btn = $("#menuBtn"), close = $("#drawerClose");
+    var wide = window.matchMedia("(min-width: 701px)");
+    var scrollY = 0, open = false;
+
+    function focusable() { return $$('a[href], button:not([disabled])', drawer); }
+    function onKey(e) {
+      if (e.key === "Escape") { e.preventDefault(); shut(true); return; }
+      if (e.key !== "Tab") return;
+      var f = focusable(); if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (!drawer.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    function show() {
+      if (open) return;
+      open = true;
+      scrollY = window.scrollY;
+      overlay.hidden = false;
+      // Force a layout read first, so the browser has a closed state to animate from.
+      // A rAF callback would do the same, but it never runs while frames are throttled.
+      void overlay.offsetWidth;
+      document.body.classList.add("drawer-open");
+      drawer.removeAttribute("inert"); drawer.setAttribute("aria-hidden", "false");
+      btn.setAttribute("aria-expanded", "true");
+      // position: fixed, because iOS Safari scrolls the body even with overflow hidden.
+      document.body.classList.add("locked");
+      document.body.style.top = -scrollY + "px";
+      document.addEventListener("keydown", onKey);
+      close.focus();
+    }
+    function shut(toButton) {
+      if (!open) return;
+      open = false;
+      document.body.classList.remove("drawer-open");
+      drawer.setAttribute("inert", ""); drawer.setAttribute("aria-hidden", "true");
+      btn.setAttribute("aria-expanded", "false");
+      document.body.classList.remove("locked");
+      document.body.style.top = "";
+      window.scrollTo(0, scrollY);
+      document.removeEventListener("keydown", onKey);
+      if (toButton) btn.focus();
+      // Keep the overlay in the tree until it has faded out.
+      setTimeout(function () { if (!open) overlay.hidden = true; }, 200);
+    }
+
+    btn.onclick = function () { open ? shut(true) : show(); };
+    close.onclick = function () { shut(true); };
+    overlay.onclick = function () { shut(false); };
+    drawer.addEventListener("click", function (e) {
+      if (e.target.closest("a[href]")) { shut(false); setTimeout(function () { main.focus(); }, 0); }
+    });
+    window.addEventListener("hashchange", function () { shut(false); });
+    // Crossing to the wide layout hides the drawer, so let go of scroll and focus with it.
+    var onWide = function (e) { if (e.matches) shut(false); };
+    wide.addEventListener ? wide.addEventListener("change", onWide) : wide.addListener(onWide);
+  }
+
   /* ---------- boot ---------- */
-  net(); render();
+  net(); initDrawer(); render();
   if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0 && window.top === window) navigator.serviceWorker.register("sw.js").catch(function () {});
 })();

@@ -1,6 +1,6 @@
 /* Khongchat demo data.
    Places and events are real. Coordinates are approximate.
-   Listings are real, from public sources (see the note above them). Craft passport partners are demo.
+   Listings are real, from public sources (see the note above them). Crafts are real; the passport reward and codes are demo.
    Event dates vary each year: confirm with Manipur Tourism before publishing. */
 
 window.KC_DATA = {
@@ -228,12 +228,27 @@ window.KC_DATA = {
   checked: "22 Sep 2026",
   levels: { govt: "Govt listed", business: "Business website", directory: "Travel guide, call to confirm" },
 
-  stamps: [
-    { id: "andro", name: "Andro pottery", where: "Andro Pottery Collective" },
-    { id: "loktak", name: "Loktak homestay", where: "Phumdi View Homestay" },
-    { id: "imakeithel", name: "Ima Keithel", where: "Ima's Kitchen" }
+  /* Craft passport. Crafts, villages and GI tags are real. Keep ids stable: QR codes point at #/stamp/<id>.
+     listing is the name of a row in listings above (where to buy). */
+  crafts: [
+    { id: "andro", name: "Andro coil pottery", craft: "Pottery", region: "east",
+      where: "Andro village, about 21 km from Imphal", gi: false,
+      about: "Coil-built pottery made without a wheel. The village also has the Mutua Bahadur museum.",
+      listing: "Andro village and Mutua Bahadur Museum" },
+    { id: "longpi", name: "Longpi black pottery", craft: "Pottery", region: "ukhrul",
+      where: "Nungbi, 38 km from Ukhrul on NH150", gi: true,
+      about: "Tangkhul black stone pottery, shaped by hand and stone, no wheel.",
+      listing: "Longpi (Nungbi) black pottery" },
+    { id: "imakeithel", name: "Ima Keithel handloom", craft: "Handloom", region: "imphal",
+      where: "Khwairamband Bazaar, Imphal", gi: false,
+      about: "About 3,000 women vendors. Phanek, shawls and everyday handloom.",
+      listing: "Khwairamband Ima Keithel" },
+    { id: "moirangphee", name: "Moirang Phee weaving", craft: "Handloom", region: "loktak",
+      where: "Moirang and around Loktak", gi: true,
+      about: "Temple-motif border woven into phanek and shawls. GI tagged.",
+      listing: "MHHDC sales emporium" }
   ],
-  unlock: { need: 3, reward: "Guided Andro village walk with a potter" },
+  unlock: { need: 3, reward: "Guided Andro village walk with a potter", note: "Demo reward. A live version would be agreed with the Tourism Department and the artisan group." },
 
   /* Saved with the trip so they work offline. */
   contacts: [
@@ -256,3 +271,5 @@ window.KC_DATA = {
     { label: "Inner Line Permit portal, Government of Manipur", url: "https://manipurilponline.mn.gov.in/" }
   ]
 };
+/* Older code reads stamps: same array as crafts. */
+window.KC_DATA.stamps = window.KC_DATA.crafts;

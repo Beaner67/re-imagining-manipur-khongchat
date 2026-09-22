@@ -1,5 +1,5 @@
 /* Offline cache: everything the app needs is precached, so a saved trip opens with no signal. */
-const CACHE = "khongchat-v4";
+const CACHE = "khongchat-v5";
 const ASSETS = [
   "./", "index.html", "css/style.css", "js/data.js", "js/store.js", "js/qrcode.js", "js/app.js",
   "img/loktak-hero.webp", "img/loktak-foreground.webp", "img/icon.svg", "manifest.webmanifest",

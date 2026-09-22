@@ -22,15 +22,29 @@
         <a href="#/trip" data-r="trip">My trip</a>
         <a href="#/passport" data-r="passport">Passport</a>
       </nav>
-      <span class="net" id="net" role="status"></span>
+      <span class="net" id="net" data-net role="status"></span>
+      <button class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="drawer">Menu</button>
     </div>
   </header>
+
+  <div id="overlay" hidden></div>
+  <nav id="drawer" aria-label="Menu" inert aria-hidden="true">
+    <div class="drawer-top"><button class="btn ghost small" id="drawerClose">Close</button></div>
+    <a class="drow" href="#/" data-r="home">Discover</a>
+    <a class="drow" href="#/trip" data-r="trip">My trip</a>
+    <a class="drow" href="#/passport" data-r="passport">Passport</a>
+    <div class="drawer-more">
+      <a href="#/about" data-r="about">About</a>
+      <a href="#/admin" data-r="admin">Staff</a>
+    </div>
+    <span class="net" data-net role="status"></span>
+  </nav>
 
   <main id="main" tabindex="-1"></main>
 
   <footer class="site-foot">
     <div class="wrap foot-row">
-      <p><strong>Khongchat</strong> is a prototype built for the Re-imagining Manipur Hackathon 2026. Place status is demo data entered from the staff dashboard. Listings come from public sources, with the source on each one. Craft passport partners are demo.</p>
+      <p><strong>Khongchat</strong> is a prototype built for the Re-imagining Manipur Hackathon 2026. Place status is demo data entered from the staff dashboard. Listings come from public sources, with the source on each one. Crafts are real; the passport reward and codes are demo.</p>
       <nav aria-label="Footer">
         <a href="#/about">About and sources</a>
         <a href="#/about/privacy">Privacy</a>
