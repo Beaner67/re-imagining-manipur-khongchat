@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Khongchat | Walk Manipur, the local way</title>
+  <meta name="description" content="Plan a trip to Manipur in a minute. Place status verified by Manipur Tourism, a trip that works with no signal, and a craft passport that takes you to local artisans." />
+  <meta name="theme-color" content="#7A1F2B" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="img/icon.svg" type="image/svg+xml" />
+  <link rel="preload" href="img/loktak-hero.webp" as="image" />
+  <link rel="preload" href="fonts/fraunces-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <a class="sr" href="#main">Skip to content</a>
+  <header class="site-head" id="head">
+    <div class="wrap head-row">
+      <a class="brand" href="#/"><span class="mark" aria-hidden="true"></span>Khongchat</a>
+      <nav class="nav" aria-label="Main">
+        <a href="#/" data-r="home">Discover</a>
+        <a href="#/trip" data-r="trip">My trip</a>
+        <a href="#/passport" data-r="passport">Passport</a>
+      </nav>
+      <span class="net" id="net" role="status"></span>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1"></main>
+
+  <footer class="site-foot">
+    <div class="wrap foot-row">
+      <p><strong>Khongchat</strong> is a prototype built for the Re-imagining Manipur Hackathon 2026. Place status is demo data entered from the staff dashboard. Listings marked (sample) are invented.</p>
+      <nav aria-label="Footer">
+        <a href="#/about">About and sources</a>
+        <a href="#/about/privacy">Privacy</a>
+        <a href="#/about/terms">Terms</a>
+        <a href="#/admin">Staff login</a>
+      </nav>
+    </div>
+    <div class="phanek" aria-hidden="true"></div>
+  </footer>
+
+  <div id="toasts" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/qrcode.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "Khongchat: Walk Manipur, the local way",
+  "short_name": "Khongchat",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F3EEE4",
+  "theme_color": "#7A1F2B",
+  "icons": [{ "src": "img/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
