@@ -79,8 +79,8 @@ section.block { padding: 72px 0; }
 .chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 28px; padding: 0; border: 0; }
 .chip { border: 2px solid var(--ink); background: transparent; padding: 11px 18px; border-radius: 999px; font-weight: 600; font-size: 16px; transition: background .15s, color .15s; }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
-.days { display: inline-flex; border: 2px solid var(--ink); border-radius: var(--r); overflow: hidden; }
-.days button { border: 0; background: transparent; padding: 11px 0; font-weight: 600; min-width: 52px; }
+.days { display: flex; width: 100%; max-width: 420px; border: 2px solid var(--ink); border-radius: var(--r); overflow: hidden; }
+.days button { flex: 1; min-width: 0; border: 0; background: transparent; padding: 11px 0; font-weight: 600; }
 .days button + button { border-left: 2px solid var(--ink); }
 .days button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 .label { font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 12px; }
@@ -280,6 +280,10 @@ section.block { padding: 72px 0; }
   .months { grid-template-columns: repeat(6, 1fr); }
   .month:nth-child(6) { border-right: 0; }
   .month:nth-child(-n+6) { border-bottom: 1px solid var(--line); }
+  /* Two rows on phones: "now" sits inside the cell so it cannot cover the row above. */
+  .month { padding-top: 20px; }
+  .month.now::after { top: 4px; font-size: 10px; }
+  .month.now[aria-pressed="true"]::after { color: #F2C9A0; }
   .stamps { gap: 10px; }
   .slot { font-size: 12px; padding: 6px; }
   .book { padding: 24px 18px; }
